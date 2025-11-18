@@ -1,0 +1,78 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver-investimentos
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong!Passw0rd
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - investimentos-net
+
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        echo '🔵 Iniciando SQL Server...'
+        /opt/mssql/bin/sqlservr &
+
+        echo '⏳ Aguardando SQL Server aceitar conexões...'
+        for i in {1..30}; do
+          /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'YourStrong!Passw0rd' -Q "SELECT 1" && break
+          echo "   Ainda não respondeu, tentativa $i..."
+          sleep 2
+        done
+
+        echo '🟡 Criando banco investimentos (se não existir)...'
+        /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'YourStrong!Passw0rd' -Q "IF DB_ID('investimentos') IS NULL BEGIN PRINT 'Criando database investimentos...'; CREATE DATABASE investimentos; END"
+
+        echo '🟢 SQL Server pronto.'
+        wait
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/opt/mssql-tools18/bin/sqlcmd",
+          "-C",
+          "-S",
+          "localhost",
+          "-U",
+          "sa",
+          "-P",
+          "YourStrong!Passw0rd",
+          "-Q",
+          "SELECT CASE WHEN DB_ID('investimentos') IS NOT NULL THEN 1 ELSE 0 END"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api-investimentos
+    environment:
+      - JWT_EXPIRATION_SECONDS=3600
+      - QUARKUS_HTTP_HOST=0.0.0.0
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+      - "5005:5005"
+    networks:
+      - investimentos-net
+
+volumes:
+  sqlserver_data:
+
+networks:
+  investimentos-net:
+    driver: bridge

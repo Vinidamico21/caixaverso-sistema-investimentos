@@ -1,0 +1,42 @@
+package br.com.caixaverso.invest.domain.model;
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "Investimento")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Investimento {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cliente_id", nullable = false)
+    private Cliente cliente;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "produto_id", nullable = false)
+    private ProdutoInvestimento produto;
+
+    @Column(name = "valor_aplicado", precision = 18, scale = 2, nullable = false)
+    private BigDecimal valorAplicado;
+
+    @Column(name = "prazo_meses")
+    private Integer prazoMeses;
+
+    @Column(name = "data_aporte", nullable = false)
+    private LocalDateTime dataAporte;
+
+    @Column(nullable = false, length = 20)
+    private String status;
+
+    @CreationTimestamp
+    @Column(name = "data_criacao")
+    private LocalDateTime dataCriacao;
+}

@@ -1,0 +1,10 @@
+package br.com.caixaverso.invest.infra.repository;
+
+import br.com.caixaverso.invest.domain.model.FrequenciaInvestRegra;
+import io.quarkus.hibernate.orm.panache.PanacheRepository;
+import jakarta.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class FrequenciaInvestRegraRepository implements PanacheRepository<FrequenciaInvestRegra> {
+}
+
