@@ -1,4 +1,4 @@
-package br.com.caixaverso.invest.domain.model;
+package br.com.caixaverso.invest.infra.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

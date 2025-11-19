@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.infra.adapter;
 
-import br.com.caixaverso.invest.domain.model.ProdutoRiscoRegra;
+import br.com.caixaverso.invest.infra.persistence.entity.ProdutoRiscoRegra;
 import br.com.caixaverso.invest.application.port.out.ProdutoRiscoRegraPort;
 import br.com.caixaverso.invest.infra.repository.ProdutoRiscoRegraRepository;
 import jakarta.enterprise.context.ApplicationScoped;

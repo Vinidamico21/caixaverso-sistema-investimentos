@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.application.service;
 
-import br.com.caixaverso.invest.domain.model.Cliente;
+import br.com.caixaverso.invest.infra.persistence.entity.Cliente;
 import br.com.caixaverso.invest.application.port.out.ClientePort;
 
 import jakarta.enterprise.context.ApplicationScoped;

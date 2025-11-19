@@ -1,7 +1,6 @@
 package br.com.caixaverso.invest.infra.repository;
 
-import br.com.caixaverso.invest.domain.model.FrequenciaInvestRegra;
-import br.com.caixaverso.invest.infra.repository.FrequenciaInvestRegraRepository;
+import br.com.caixaverso.invest.infra.persistence.entity.FrequenciaInvestRegra;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 

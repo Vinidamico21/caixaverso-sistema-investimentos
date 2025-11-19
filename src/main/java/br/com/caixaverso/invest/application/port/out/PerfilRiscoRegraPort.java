@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.application.port.out;
 
-import br.com.caixaverso.invest.domain.model.PerfilRiscoRegra;
+import br.com.caixaverso.invest.infra.persistence.entity.PerfilRiscoRegra;
 
 import java.util.Optional;
 

@@ -50,14 +50,15 @@ Arquitetura Hexagonal (Ports & Adapters), garantindo desacoplamento, testabilida
     - `port.out`: portas de saída (interfaces para infraestrutura — cliente, produtos, investimentos, telemetria, regras)
 
 - **`br.com.caixaverso.invest.domain`**
-    - `model`: entidades de domínio (Cliente, Produto, Investimento, Simulação, Telemetria etc.)
-    - `constants`: constantes e regras fixas do domínio
+    - `enums`: enums de domínio (`PerfilRisco`, `PreferenciaPerfil`, `RiscoProduto`)
+    - `constants`: constantes e regras fixas do domínio (descrições de perfil, pesos padrão, limites, mensagens)
 
 - **`br.com.caixaverso.invest.adapter.out`**
     - `repository`: implementações de persistência (Panache/ORM)
     - `telemetria`: persistência de métricas
 
 - **`br.com.caixaverso.invest.infra`**
+    - `entities`: entidades JPA (Cliente, ProdutoInvestimento, Investimento, SimulacaoInvestimento, Regras, TelemetriaRegistro)
     - `exception`: tratamento centralizado de erros
     - `filter`: filtros globais (telemetria, MDC etc.)
     - `util`: utilitários gerais (parser de clienteId, mapeadores de risco)
@@ -214,9 +215,7 @@ Response (`SimularInvestimentoResponse`):
 #### `GET /api/v1/simulacoes?clienteId={clienteId}&page={page}&size={size}`
 
 - clienteId (opcional) – filtra por cliente.
-
 - page (opcional, padrão = 0) – número da página (0-based).
-
 - size (opcional, padrão = 20) – quantidade de registros por página.
 
 Exemplo de resposta (array de `SimulacaoResumoDTO`):
@@ -257,8 +256,9 @@ Exemplo:
 ```http
 GET /api/v1/simulacoes/por-produto-dia?page=0&size=10
 Authorization: Bearer <JWT>
+```
 
-
+```json
 {
   "content": [
     {
@@ -279,7 +279,6 @@ Authorization: Bearer <JWT>
   "totalElements": 25,
   "totalPages": 3
 }
-
 ```
 
 ---
@@ -349,9 +348,7 @@ Resource: `InvestimentoResource`, ROLE `USER`.
 #### `GET /api/v1/investimentos/{clienteId}?page={page}&size={size}`
 
 - clienteId (obrigatório) – ID do cliente.
-
 - page (opcional, padrão = 0) – número da página (0-based).
-
 - size (opcional, padrão = 20) – quantidade de registros por página.
 
 Retorna os investimentos realizados por um cliente:
@@ -489,27 +486,30 @@ Na raiz do projeto:
 docker compose up -d
 ```
 
-```bash 
-# Para derrubar containers + volumes: 
-- docker compose down -v
+```bash
+# Para derrubar containers + volumes:
+docker compose down -v
 
-# Derrubar tudo(vololume, containers, imagens): 
-- Docker compose down --rmi all --volumes --remove-orphans
-``` 
+# Derrubar tudo (volumes, containers, imagens):
+docker compose down --rmi all --volumes --remove-orphans
+```
 
 - Serviços:
-
-- API: http://localhost:8080
-- SQL Server: `localhost:1433`
-- Redis: `localhost:6379`
+    - API: http://localhost:8080
+    - SQL Server: `localhost:1433`
+    - Redis: `localhost:6379`
 
 ---
 
 ### 8.3. Usando a imagem do Docker Hub
 
+```bash
 # Puxar a imagem oficial
 docker pull vinipereira21/caixaverso-sistema-investimentos:latest
- 
+```
+
+---
+
 ## 9. Massa de Teste – Parâmetros para o Avaliador
 
 A base já sobe com uma massa de **clientes**, **produtos**, **investimentos**, **simulações** e **regras de risco**.  
@@ -532,8 +532,8 @@ Em chamadas da API, o campo `clienteId` deve usar esse `id`, por exemplo:
 - `GET /api/v1/investimentos/2`
 - `POST /api/v1/simular-investimento` usando `"clienteId": 3`
 
-O avaliador pode usar qualquer `clienteId` existente para testar o comportamento do motor e outras funcionalidades.
-Massa de testes criada na base com clientId entre 1 e 15. 
+O avaliador pode usar qualquer `clienteId` existente para testar o comportamento do motor e outras funcionalidades.  
+Massa de testes criada na base com clientId entre 1 e 15.
 
 ### 9.2. Tipos de Produto (`tipoProduto`)
 
@@ -592,4 +592,102 @@ Além das faixas de score, o motor utiliza outras tabelas de parametrização qu
 
 Os valores atuais dessas tabelas são carregados pelos scripts Flyway em `db/migration` e podem ser ajustados conforme a política de investimento desejada.  
 O código da API apenas lê esses parâmetros, permitindo que o motor de recomendação seja **totalmente configurável em banco**.
+
+---
+
+## 10. Funcionamento do Motor de Recomendação (Resumo Técnico)
+
+O motor de recomendação combina **comportamento do cliente**, **características dos produtos** e **regras parametrizadas em banco** para montar uma lista de produtos alinhados ao perfil de risco.
+
+### 10.1. Cálculo do Perfil de Risco do Cliente
+
+O perfil do cliente (enum `PerfilRisco`: `CONSERVADOR`, `MODERADO`, `AGRESSIVO`, `DESCONHECIDO`) é derivado de um **score de risco** calculado a partir de três componentes:
+
+1. **Preferência (Liquidez vs Rentabilidade)**
+    - Analisa as simulações do cliente e verifica se ele tende a escolher produtos:
+        - com **alta liquidez**; ou
+        - com **alta rentabilidade**.
+    - A partir desse padrão, classifica em um enum `PreferenciaPerfil`:
+        - `LIQUIDEZ`
+        - `RENTABILIDADE`
+        - `EMPATE`
+    - A pontuação associada é buscada em banco (`perfil_preferencia_regra`).
+
+2. **Volume Simulado / Investido**
+    - Soma os valores simulados e gera uma pontuação de acordo com faixas (por exemplo, acima de 50k recebe pontuação maior que acima de 10k).
+    - Esse componente mede **capacidade / apetite financeiro**.
+
+3. **Frequência de Movimentações (Simulações + Investimentos)**
+    - Considera:
+        - quantidade de investimentos reais nos últimos meses; e
+        - quantidade de simulações recentes.
+    - Cada uma dessas frequências é convertida em pontos via tabelas:
+        - `perfil_freq_invest_regra`
+        - `perfil_freq_simulacao_regra`
+
+O **score final** é a soma:
+
+```text
+scoreFinal = scorePreferencia + scoreVolume + scoreFrequencia
+```
+
+Esse valor é então convertido em perfil através da tabela `PerfilRiscoRegra` (faixas de score).
+
+### 10.2. Classificação de Risco dos Produtos
+
+Cada produto tem:
+
+- um tipo (CDB, TESOURO, FII, ETF etc.);
+- uma taxa anual de rentabilidade (`taxaAnual`);
+- uma informação de liquidez/prazo.
+
+O motor consulta a tabela `ProdutoRiscoRegra` para transformar rentabilidade em um enum `RiscoProduto`:
+
+- `BAIXO`
+- `MEDIO`
+- `ALTO`
+
+Essa classificação é usada tanto para exibição quanto para o cálculo do score final de recomendação.
+
+### 10.3. Cálculo do Score de Recomendação por Produto
+
+Para cada produto elegível, o motor calcula um **score numérico**, considerando três eixos:
+
+1. **Rentabilidade**
+    - Se a taxa anual é:
+        - abaixo de um limiar → pontuação baixa;
+        - dentro de uma faixa intermediária → pontuação média;
+        - acima do limiar superior → pontuação alta.
+
+2. **Liquidez / Prazo**
+    - Liquidez diária / D+0 / prazos curtos → pontuação maior.
+    - Liquidez mensal / D+30 / prazos médios → pontuação intermediária.
+    - Prazos longos / baixa liquidez → pontuação menor.
+
+3. **Compatibilidade de Risco (Produto x Perfil)**
+    - Exemplo:
+        - Cliente **CONSERVADOR** → prefere produtos `BAIXO` risco.
+        - Cliente **MODERADO** → aceita `BAIXO` e `MEDIO` com bom peso.
+        - Cliente **AGRESSIVO** → favorece produtos `ALTO` risco.
+
+Cada um desses eixos gera um score (`liq`, `rent`, `risco`) e, em seguida, o motor combina com **pesos por perfil**, definidos em constantes no domínio:
+
+- Perfil CONSERVADOR → peso maior em **liquidez**, menor em rentabilidade.
+- Perfil MODERADO → pesos equilibrados.
+- Perfil AGRESSIVO → peso maior em **rentabilidade** e compatibilidade de risco.
+
+O cálculo simplificado:
+
+```text
+scoreProduto = (liq * pesoLiquidezPerfil)
+             + (rent * pesoRentabilidadePerfil)
+             + (risco * pesoCompatibilidadePerfil)
+```
+
+Por fim:
+
+- Os produtos são ordenados por `scoreProduto` (decrescente).
+- Apenas os **melhores N produtos** (ex.: Top 5) são retornados na recomendação.
+
+Isso garante que o avaliador veja recomendações **coerentes com o perfil do cliente**, mas totalmente **parametrizáveis via banco**, sem necessidade de alterar código.
 

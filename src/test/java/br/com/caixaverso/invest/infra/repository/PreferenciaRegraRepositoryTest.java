@@ -1,12 +1,10 @@
 package br.com.caixaverso.invest.infra.repository;
 
-import br.com.caixaverso.invest.domain.model.PreferenciaRegra;
+import br.com.caixaverso.invest.infra.persistence.entity.PreferenciaRegra;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.*;

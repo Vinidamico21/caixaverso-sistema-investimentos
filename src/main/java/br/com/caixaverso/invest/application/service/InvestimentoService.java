@@ -1,9 +1,10 @@
 package br.com.caixaverso.invest.application.service;
 
 import br.com.caixaverso.invest.application.dto.InvestimentoResponseDTO;
-import br.com.caixaverso.invest.application.dto.PageResponse;
+import br.com.caixaverso.invest.application.dto.response.PageResponse;
 import br.com.caixaverso.invest.application.port.in.ListarInvestimentosPorClienteUseCase;
-import br.com.caixaverso.invest.domain.model.Investimento;
+import br.com.caixaverso.invest.domain.constants.PerfilConstantes;
+import br.com.caixaverso.invest.infra.persistence.entity.Investimento;
 import br.com.caixaverso.invest.infra.repository.InvestimentoRepository;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Page;
@@ -32,34 +33,35 @@ public class InvestimentoService implements ListarInvestimentosPorClienteUseCase
 
         // Sanitiza parâmetros de paginação
         if (page < 0) {
-            LOG.warnf("Página negativa informada (%d). Normalizando para 0.", page);
+            LOG.warnf(PerfilConstantes.LOG_PAGE_NEGATIVA, page);
             page = 0;
         }
         if (size <= 0) {
-            LOG.warnf("Tamanho de página inválido (%d). Normalizando para 20.", size);
+            LOG.warnf(PerfilConstantes.LOG_PAGE_SIZE_INVALIDO, size);
             size = 20;
         }
 
-        LOG.infof("Buscando investimentos | clienteId=%d | page=%d | size=%d",
-                clienteId, page, size);
+        LOG.infof(PerfilConstantes.LOG_BUSCA_INVESTIMENTOS, clienteId, page, size);
 
-        // Query base ordenada por dataAporte desc
+        // Query base
         PanacheQuery<Investimento> queryBase =
-                investimentoRepository.find("cliente.id = ?1 order by dataAporte desc", clienteId);
+                investimentoRepository.find(PerfilConstantes.QUERY_INVESTIMENTOS_POR_CLIENTE, clienteId);
 
         long totalElements = queryBase.count();
 
-        // Aplica paginação no banco
+        // Paginação
         PanacheQuery<Investimento> queryPaginada =
                 queryBase.page(Page.of(page, size));
 
         List<Investimento> investimentos = queryPaginada.list();
 
         if (investimentos.isEmpty()) {
-            LOG.infof("Nenhum investimento encontrado | clienteId=%d", clienteId);
+            LOG.infof(PerfilConstantes.LOG_INVESTIMENTOS_VAZIO, clienteId);
         } else {
-            LOG.infof("Total de investimentos retornados na página=%d | totalElements=%d | clienteId=%d",
-                    investimentos.size(), totalElements, clienteId);
+            LOG.infof(
+                    PerfilConstantes.LOG_INVESTIMENTOS_ENCONTRADOS,
+                    investimentos.size(), totalElements, clienteId
+            );
         }
 
         List<InvestimentoResponseDTO> content = investimentos.stream()

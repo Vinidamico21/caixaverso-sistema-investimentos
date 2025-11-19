@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.application.port.out;
 
-import br.com.caixaverso.invest.domain.model.SimulacaoInvestimento;
+import br.com.caixaverso.invest.infra.persistence.entity.SimulacaoInvestimento;
 import java.util.List;
 
 public interface SimulacaoInvestimentoPort {

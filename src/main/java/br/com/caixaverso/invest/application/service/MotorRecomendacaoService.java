@@ -3,12 +3,18 @@ package br.com.caixaverso.invest.application.service;
 import br.com.caixaverso.invest.application.dto.PerfilRiscoResponseDTO;
 import br.com.caixaverso.invest.application.dto.ProdutoRecomendadoDTO;
 import br.com.caixaverso.invest.application.dto.RecomendacaoResponseDTO;
-import br.com.caixaverso.invest.application.port.out.*;
-import br.com.caixaverso.invest.domain.model.*;
 import br.com.caixaverso.invest.application.port.in.CalcularPerfilRiscoUseCase;
 import br.com.caixaverso.invest.application.port.in.RecomendarProdutosUseCase;
+import br.com.caixaverso.invest.application.port.out.*;
+import br.com.caixaverso.invest.domain.enums.PerfilRisco;
+import br.com.caixaverso.invest.domain.enums.PreferenciaPerfil;
+import br.com.caixaverso.invest.domain.enums.RiscoProduto;
 import br.com.caixaverso.invest.infra.exception.BusinessException;
 import br.com.caixaverso.invest.infra.exception.NotFoundException;
+import br.com.caixaverso.invest.infra.persistence.entity.Investimento;
+import br.com.caixaverso.invest.infra.persistence.entity.PerfilRiscoRegra;
+import br.com.caixaverso.invest.infra.persistence.entity.ProdutoInvestimento;
+import br.com.caixaverso.invest.infra.persistence.entity.SimulacaoInvestimento;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -26,35 +32,24 @@ public class MotorRecomendacaoService
         implements CalcularPerfilRiscoUseCase, RecomendarProdutosUseCase {
 
     private static final Logger LOG = Logger.getLogger(MotorRecomendacaoService.class);
-
     private static final BigDecimal ZERO = BigDecimal.ZERO;
-    private static final int LIMITE_PADRAO = 5;
 
-    @Inject
-    PerfilRiscoRegraPort perfilRegraPort;
-    @Inject
-    PreferenciaRegraPort preferenciaRegraPort;
-    @Inject
-    FrequenciaInvestRegraPort freqInvestRegraPort;
-    @Inject
-    FrequenciaSimulacaoRegraPort freqSimRegraPort;
-    @Inject
-    ProdutoRiscoRegraPort riscoRegraPort;
+    @Inject PerfilRiscoRegraPort perfilRegraPort;
+    @Inject PreferenciaRegraPort preferenciaRegraPort;
+    @Inject FrequenciaInvestRegraPort freqInvestRegraPort;
+    @Inject FrequenciaSimulacaoRegraPort freqSimRegraPort;
+    @Inject ProdutoRiscoRegraPort riscoRegraPort;
 
     @Inject SimulacaoInvestimentoPort simulacaoPort;
-    @Inject
-    InvestimentoPort investimentoPort;
-    @Inject
-    ProdutoInvestimentoPort produtoPort;
+    @Inject InvestimentoPort investimentoPort;
+    @Inject ProdutoInvestimentoPort produtoPort;
 
-    // =============================================================
-    //                     CÁLCULO DO PERFIL
-    // =============================================================
+    // CÁLCULO DE PERFIL
+    @Override
     public PerfilRiscoResponseDTO calcularPerfil(Long clienteId) {
 
         validarClienteId(clienteId);
-
-        LOG.infof("Iniciando calculo de perfil | clienteId=%d", clienteId);
+        LOG.infof(LOG_CALC_INICIO, clienteId);
 
         List<SimulacaoInvestimento> sims = simulacaoPort.listar().stream()
                 .filter(s -> s.getCliente().getId().equals(clienteId))
@@ -66,105 +61,96 @@ public class MotorRecomendacaoService
 
         int scoreFinal = scorePreferencia + scoreVolume + scoreFrequencia;
 
-        LOG.infof(
-                "Score final=%d (preferencia=%d, volume=%d, frequencia=%d)",
-                scoreFinal, scorePreferencia, scoreVolume, scoreFrequencia
-        );
+        LOG.infof(LOG_CALC_SCORE_FINAL, scoreFinal, scorePreferencia, scoreVolume, scoreFrequencia);
 
-        String perfilNome = classificarPerfilViaBanco(scoreFinal);
+        String perfilBanco = classificarPerfilViaBanco(scoreFinal);
+        PerfilRisco perfil = PerfilRisco.from(perfilBanco);
 
-        LOG.infof("Perfil classificado=%s", perfilNome);
+        LOG.infof(LOG_CALC_CLASSIFICADO, perfil.name());
 
         return PerfilRiscoResponseDTO.builder()
                 .clienteId(clienteId)
                 .pontuacao(String.valueOf(scoreFinal))
-                .perfil(perfilNome)
-                .descricao(gerarDescricao(perfilNome))
+                .perfil(perfil.name())
+                .descricao(gerarDescricao(perfil))
                 .build();
     }
 
-    // =============================================================
-    //              MOTOR DE RECOMENDAÇÃO DE PRODUTOS
-    // =============================================================
+    // RECOMENDAÇÃO
+    @Override
     public RecomendacaoResponseDTO recomendarParaCliente(Long clienteId) {
 
-        LOG.infof("Iniciando recomendacao | clienteId=%d", clienteId);
+        LOG.infof(LOG_RECOM_INICIO, clienteId);
 
         try {
-            PerfilRiscoResponseDTO perfil = calcularPerfil(clienteId);
+            PerfilRiscoResponseDTO perfilDTO = calcularPerfil(clienteId);
+            PerfilRisco perfilRisco = PerfilRisco.from(perfilDTO.getPerfil());
 
-            String perfilUpper = perfil.getPerfil().toUpperCase();
             List<ProdutoInvestimento> produtos = produtoPort.findAll();
 
-            LOG.infof("Produtos carregados=%d | perfil=%s",
-                    produtos.size(), perfilUpper);
+            LOG.infof(LOG_RECOM_PRODUTOS_CARREGADOS, produtos.size(), perfilRisco.name());
 
             List<ProdutoRecomendadoDTO> recomendados =
-                    calcularRecomendacoesPorPerfil(perfilUpper, produtos);
+                    calcularRecomendacoesPorPerfil(perfilRisco, produtos);
 
-            LOG.infof("Total recomendados=%d", recomendados.size());
+            LOG.infof(LOG_RECOM_TOTAL, recomendados.size());
 
             return RecomendacaoResponseDTO.builder()
                     .clienteId(clienteId)
-                    .perfilRisco(perfilUpper)
-                    .scoreRisco(perfil.getPontuacao())
+                    .perfilRisco(perfilRisco.name())
+                    .scoreRisco(perfilDTO.getPontuacao())
                     .produtos(recomendados)
                     .build();
 
         } catch (NotFoundException e) {
-            // aqui a regra de negócio é diferente: não quebra o endpoint,
-            // apenas devolve perfil desconhecido e lista vazia
-            LOG.warnf("Perfil nao encontrado para recomendacao | clienteId=%d", clienteId);
+            LOG.warnf(LOG_RECOM_PERFIL_NAO_ENCONTRADO, clienteId);
             return RecomendacaoResponseDTO.builder()
                     .clienteId(clienteId)
-                    .perfilRisco(PERFIL_DESCONHECIDO)
+                    .perfilRisco(PerfilRisco.DESCONHECIDO.name())
                     .produtos(List.of())
                     .build();
         }
     }
 
+    @Override
     public List<ProdutoRecomendadoDTO> recomendarPorPerfil(String perfilTexto) {
-        String perfilUpper = perfilTexto == null ? PERFIL_CONSERVADOR : perfilTexto.trim().toUpperCase();
-        LOG.infof("Recomendacao direta por perfil=%s", perfilUpper);
-        return calcularRecomendacoesPorPerfil(perfilUpper, produtoPort.findAll());
+        PerfilRisco perfil = PerfilRisco.from(perfilTexto);
+
+        LOG.infof(LOG_RECOM_DIRETA, perfil.name());
+
+        return calcularRecomendacoesPorPerfil(perfil, produtoPort.findAll());
     }
 
-    // =============================================================
-    //               PIPELINE DE AVALIAÇÃO E FILTRO
-    // =============================================================
+    //PIPELINE PRINCIPAL
     private List<ProdutoRecomendadoDTO> calcularRecomendacoesPorPerfil(
-            String perfilUpper,
+            PerfilRisco perfil,
             List<ProdutoInvestimento> produtos) {
 
-        LOG.infof("Iniciando pipeline de recomendação | perfil=%s | totalProdutos=%d",
-                perfilUpper, produtos.size());
+        LOG.infof(LOG_PIPELINE_INICIO, perfil.name(), produtos.size());
 
         return produtos.stream()
 
-                .peek(p -> LOG.debugf("Produto | id=%d | nome=%s | taxa=%s",
+                .peek(p -> LOG.debugf(LOG_PIPELINE_PRODUTO,
                         p.getId(), p.getNome(), p.getTaxaAnual()))
 
                 .filter(this::produtoAtivo)
 
                 .map(p -> {
-                    String risco = riscoRegraPort.classificar(p.getTaxaAnual());
-                    p.setRisco(risco);
-                    LOG.debugf("Risco | %s -> %s", p.getNome(), risco);
+                    String riscoStr = riscoRegraPort.classificar(p.getTaxaAnual());
+                    RiscoProduto riscoEnum = RiscoProduto.from(riscoStr);
+                    p.setRisco(riscoEnum.name());
+                    LOG.debugf(LOG_PIPELINE_RISCO, p.getNome(), riscoEnum);
                     return p;
                 })
 
-                .filter(p -> riscoDentroDoPerfil(p.getRisco(), perfilUpper))
+                .filter(p -> riscoDentroDoPerfil(RiscoProduto.from(p.getRisco()), perfil))
 
-                .map(p -> {
-                    BigDecimal score = calcularScoreProduto(p, perfilUpper);
-                    LOG.debugf("Score | %s -> %s", p.getNome(), score);
-                    return new ProdutoComScore(p, score);
-                })
+                .map(p -> new ProdutoComScore(p, calcularScoreProduto(p, perfil)))
 
                 .sorted(Comparator.comparing(ProdutoComScore::score).reversed())
-                .limit(LIMITE_PADRAO)
+                .limit(LIMITE_PADRAO_RECOMENDACAO)
 
-                .peek(pcs -> LOG.infof("Selecionado | %s | score=%s",
+                .peek(pcs -> LOG.infof(LOG_PIPELINE_SELECIONADO,
                         pcs.produto().getNome(), pcs.score()))
 
                 .map(this::paraDto)
@@ -177,22 +163,15 @@ public class MotorRecomendacaoService
 
     private record ProdutoComScore(ProdutoInvestimento produto, BigDecimal score) {}
 
-    // =============================================================
-    //      DEMAIS FUNÇÕES AUXILIARES
-    // =============================================================
-
+    // AUXILIARES DO PERFIL
     private void validarClienteId(Long clienteId) {
-        if (clienteId == null) {
-            throw new BusinessException("Parâmetro 'clienteId' é obrigatório.");
-        }
-        if (clienteId <= 0) {
-            throw new BusinessException("Parâmetro 'clienteId' deve ser maior que zero.");
-        }
+        if (clienteId == null) throw new BusinessException(ERRO_CLIENTE_ID_OBRIGATORIO);
+        if (clienteId <= 0) throw new BusinessException(ERRO_CLIENTE_ID_INVALIDO);
     }
 
     private int calcularPreferencias(List<SimulacaoInvestimento> simulacoes) {
-        int prefLiq = 0;
-        int prefRent = 0;
+        int liq = 0;
+        int rent = 0;
 
         for (SimulacaoInvestimento s : simulacoes) {
             ProdutoInvestimento p = s.getProduto();
@@ -201,20 +180,20 @@ public class MotorRecomendacaoService
             boolean altaLiq = isAltaLiquidez(p.getLiquidez(), p.getPrazoMinMeses());
             boolean altaRent = isAltaRentabilidade(p.getTaxaAnual());
 
-            if (altaLiq && !altaRent) prefLiq++;
-            else if (altaRent && !altaLiq) prefRent++;
+            if (altaLiq && !altaRent) liq++;
+            else if (altaRent && !altaLiq) rent++;
         }
 
-        String preferencia =
-                prefRent > prefLiq ? PREF_RENTABILIDADE :
-                        prefRent < prefLiq ? PREF_LIQUIDEZ :
-                                PREF_EMPATE;
+        PreferenciaPerfil pref =
+                rent > liq ? PreferenciaPerfil.RENTABILIDADE :
+                        rent < liq ? PreferenciaPerfil.LIQUIDEZ :
+                                PreferenciaPerfil.EMPATE;
 
-          return preferenciaRegraPort.buscarPontuacao(preferencia);
+        return preferenciaRegraPort.buscarPontuacao(pref.name());
     }
 
-    private int calcularVolume(List<SimulacaoInvestimento> simulacoes) {
-        BigDecimal volume = simulacoes.stream()
+    private int calcularVolume(List<SimulacaoInvestimento> sims) {
+        BigDecimal volume = sims.stream()
                 .map(SimulacaoInvestimento::getValorAplicado)
                 .reduce(ZERO, BigDecimal::add);
 
@@ -226,7 +205,6 @@ public class MotorRecomendacaoService
     }
 
     private int calcularPontuacaoFrequencia(Long clienteId) {
-
         LocalDate limite = LocalDate.now().minusMonths(6);
 
         List<Investimento> reais =
@@ -238,25 +216,22 @@ public class MotorRecomendacaoService
                         .filter(s -> s.getDataSimulacao().toLocalDate().isAfter(limite))
                         .toList();
 
-        int pontosInvest = freqInvestRegraPort.buscarPontuacao(reais.size());
-        int pontosSims = freqSimRegraPort.buscarPontuacao(sims6m.size());
-
-        return pontosInvest + pontosSims;
+        return freqInvestRegraPort.buscarPontuacao(reais.size())
+                + freqSimRegraPort.buscarPontuacao(sims6m.size());
     }
 
     private String classificarPerfilViaBanco(int score) {
         return perfilRegraPort.buscarRegraPorScore(score)
                 .map(PerfilRiscoRegra::getPerfil)
-                .orElse(PERFIL_DESCONHECIDO);
+                .orElse(PerfilRisco.DESCONHECIDO.name());
     }
 
-    private boolean isAltaLiquidez(String liquidez, Integer prazo) {
-        if (liquidez == null) return false;
+    private boolean isAltaLiquidez(String liquidezStr, Integer prazo) {
+        if (liquidezStr == null) return false;
 
-        String l = liquidez.toUpperCase();
-
-        return l.contains(LIQ_DIARIA) ||
-                l.contains(LIQ_D0) ||
+        String l = liquidezStr.toUpperCase();
+        return l.contains(LIQ_D0) ||
+                l.contains(LIQ_DIARIA) ||
                 (prazo != null && prazo <= PRAZO_CURTO);
     }
 
@@ -264,50 +239,48 @@ public class MotorRecomendacaoService
         return taxa != null && taxa.compareTo(RENTABILIDADE_MEDIA) > 0;
     }
 
-    private String gerarDescricao(String perfil) {
+    private String gerarDescricao(PerfilRisco perfil) {
         return switch (perfil) {
-            case PERFIL_CONSERVADOR -> DESC_CONSERVADOR;
-            case PERFIL_MODERADO -> DESC_MODERADO;
-            case PERFIL_AGRESSIVO -> DESC_AGRESSIVO;
+            case CONSERVADOR -> DESC_CONSERVADOR;
+            case MODERADO -> DESC_MODERADO;
+            case AGRESSIVO -> DESC_AGRESSIVO;
             default -> DESC_DESCONHECIDO;
         };
     }
 
-    private boolean riscoDentroDoPerfil(String riscoProduto, String perfilUpper) {
-        if (riscoProduto == null) return false;
-
-        return switch (perfilUpper) {
-            case PERFIL_CONSERVADOR -> riscoProduto.equalsIgnoreCase(PERFIL_CONSERVADOR_PRODUTO);
-            case PERFIL_MODERADO    -> riscoProduto.equalsIgnoreCase(PERFIL_MODERADO_PRODUTO);
-            case PERFIL_AGRESSIVO   -> riscoProduto.equalsIgnoreCase(PERFIL_AGRESSIVO_PRODUTO);
+    private boolean riscoDentroDoPerfil(RiscoProduto risco, PerfilRisco perfil) {
+        return switch (perfil) {
+            case CONSERVADOR -> risco == RiscoProduto.BAIXO;
+            case MODERADO -> risco == RiscoProduto.MEDIO;
+            case AGRESSIVO -> risco == RiscoProduto.ALTO;
             default -> false;
         };
     }
 
-    private BigDecimal calcularScoreProduto(ProdutoInvestimento p, String perfilUpper) {
+    private BigDecimal calcularScoreProduto(ProdutoInvestimento p, PerfilRisco perfil) {
 
         BigDecimal rent = calcularRentabilidadeScore(p.getTaxaAnual());
         BigDecimal liq = calcularLiquidezScore(p.getLiquidez(), p.getPrazoMinMeses());
-        BigDecimal risco = compatibilidadeRisco(p.getRisco(), perfilUpper);
+        BigDecimal risco = compatibilidadeRisco(RiscoProduto.from(p.getRisco()), perfil);
 
-        BigDecimal finalScore = switch (perfilUpper) {
-            case PERFIL_CONSERVADOR ->
-                    liq.multiply(PESO_LIQ_CONSERVADOR)
-                            .add(rent.multiply(PESO_RENT_CONSERVADOR))
-                            .add(risco.multiply(PESO_RISCO_CONSERVADOR));
+        return (
+                switch (perfil) {
+                    case CONSERVADOR ->
+                            liq.multiply(PESO_LIQ_CONSERVADOR)
+                                    .add(rent.multiply(PESO_RENT_CONSERVADOR))
+                                    .add(risco.multiply(PESO_RISCO_CONSERVADOR));
 
-            case PERFIL_AGRESSIVO ->
-                    liq.multiply(PESO_LIQ_AGRESSIVO)
-                            .add(rent.multiply(PESO_RENT_AGRESSIVO))
-                            .add(risco.multiply(PESO_RISCO_AGRESSIVO));
+                    case AGRESSIVO ->
+                            liq.multiply(PESO_LIQ_AGRESSIVO)
+                                    .add(rent.multiply(PESO_RENT_AGRESSIVO))
+                                    .add(risco.multiply(PESO_RISCO_AGRESSIVO));
 
-            default ->
-                    liq.multiply(PESO_LIQ_MODERADO)
-                            .add(rent.multiply(PESO_RENT_MODERADO))
-                            .add(risco.multiply(PESO_RISCO_MODERADO));
-        };
-
-        return finalScore.setScale(2, RoundingMode.HALF_UP);
+                    default ->
+                            liq.multiply(PESO_LIQ_MODERADO)
+                                    .add(rent.multiply(PESO_RENT_MODERADO))
+                                    .add(risco.multiply(PESO_RISCO_MODERADO));
+                }
+        ).setScale(2, RoundingMode.HALF_UP);
     }
 
     private BigDecimal calcularRentabilidadeScore(BigDecimal taxa) {
@@ -317,40 +290,36 @@ public class MotorRecomendacaoService
         return SCORE_ALTO;
     }
 
-    private BigDecimal calcularLiquidezScore(String liquidez, Integer prazo) {
-        if (liquidez == null) return SCORE_BAIXO;
+    private BigDecimal calcularLiquidezScore(String liquidezStr, Integer prazo) {
+        if (liquidezStr == null) return SCORE_BAIXO;
 
-        String liq = liquidez.toUpperCase();
+        liquidezStr = liquidezStr.toUpperCase();
         int p = prazo == null ? 0 : prazo;
 
-        if (liq.contains(LIQ_DIARIA) || liq.contains(LIQ_D0) || p <= PRAZO_CURTO)
+        if (liquidezStr.contains(LIQ_DIARIA) || liquidezStr.contains(LIQ_D0) || p <= PRAZO_CURTO)
             return SCORE_ALTO;
 
-        if (liq.contains(LIQ_MENSAL) || liq.contains(LIQ_D30) || p <= PRAZO_MEDIO)
+        if (liquidezStr.contains(LIQ_MENSAL) || liquidezStr.contains(LIQ_D30) || p <= PRAZO_MEDIO)
             return SCORE_MEDIO;
 
         return SCORE_BAIXO;
     }
 
-    private BigDecimal compatibilidadeRisco(String riscoProduto, String perfilUpper) {
-        if (riscoProduto == null) return SCORE_BAIXO;
-
-        String r = riscoProduto.toUpperCase();
-
-        return switch (perfilUpper) {
-            case PERFIL_CONSERVADOR -> switch (r) {
-                case PERFIL_CONSERVADOR -> SCORE_ALTO;
-                case PERFIL_MODERADO    -> SCORE_MEDIO;
+    private BigDecimal compatibilidadeRisco(RiscoProduto risco, PerfilRisco perfil) {
+        return switch (perfil) {
+            case CONSERVADOR -> switch (risco) {
+                case BAIXO -> SCORE_ALTO;
+                case MEDIO -> SCORE_MEDIO;
                 default -> SCORE_BAIXO;
             };
-            case PERFIL_MODERADO -> switch (r) {
-                case PERFIL_CONSERVADOR -> SCORE_MEDIO;
-                case PERFIL_MODERADO    -> SCORE_ALTO;
+            case MODERADO -> switch (risco) {
+                case BAIXO -> SCORE_MEDIO;
+                case MEDIO -> SCORE_ALTO;
                 default -> SCORE_MEDIO;
             };
-            default -> switch (r) {
-                case PERFIL_AGRESSIVO -> SCORE_ALTO;
-                case PERFIL_MODERADO  -> SCORE_MEDIO;
+            default -> switch (risco) {
+                case ALTO -> SCORE_ALTO;
+                case MEDIO -> SCORE_MEDIO;
                 default -> SCORE_BAIXO;
             };
         };

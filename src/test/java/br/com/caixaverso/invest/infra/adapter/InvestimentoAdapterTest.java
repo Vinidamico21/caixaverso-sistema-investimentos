@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.infra.adapter;
 
-import br.com.caixaverso.invest.domain.model.Investimento;
+import br.com.caixaverso.invest.infra.persistence.entity.Investimento;
 import br.com.caixaverso.invest.infra.repository.InvestimentoRepository;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;

@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.infra.adapter;
 
-import br.com.caixaverso.invest.domain.model.FrequenciaInvestRegra;
+import br.com.caixaverso.invest.infra.persistence.entity.FrequenciaInvestRegra;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

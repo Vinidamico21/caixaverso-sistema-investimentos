@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.infra.repository;
 
-import br.com.caixaverso.invest.domain.model.PreferenciaRegra;
+import br.com.caixaverso.invest.infra.persistence.entity.PreferenciaRegra;
 import io.quarkus.cache.CacheKey;
 import io.quarkus.cache.CacheResult;
 import io.quarkus.hibernate.orm.panache.PanacheRepository;

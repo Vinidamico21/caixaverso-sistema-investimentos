@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.infra.adapter;
 
-import br.com.caixaverso.invest.domain.model.PerfilRiscoRegra;
+import br.com.caixaverso.invest.infra.persistence.entity.PerfilRiscoRegra;
 import br.com.caixaverso.invest.application.port.out.PerfilRiscoRegraPort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.infra.repository;
 
-import br.com.caixaverso.invest.domain.model.ProdutoRiscoRegra;
+import br.com.caixaverso.invest.infra.persistence.entity.ProdutoRiscoRegra;
 import io.quarkus.cache.CacheResult;
 import io.quarkus.hibernate.orm.panache.PanacheRepository;
 import jakarta.enterprise.context.ApplicationScoped;

@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.infra.repository;
 
-import br.com.caixaverso.invest.domain.model.Investimento;
+import br.com.caixaverso.invest.infra.persistence.entity.Investimento;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

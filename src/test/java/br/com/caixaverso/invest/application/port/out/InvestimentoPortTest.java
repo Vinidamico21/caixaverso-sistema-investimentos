@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.application.port.out;
 
-import br.com.caixaverso.invest.domain.model.Investimento;
+import br.com.caixaverso.invest.infra.persistence.entity.Investimento;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;

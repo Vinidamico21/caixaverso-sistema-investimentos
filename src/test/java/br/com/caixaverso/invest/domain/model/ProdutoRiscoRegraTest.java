@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.domain.model;
 
-import br.com.caixaverso.invest.domain.model.ProdutoRiscoRegra;
+import br.com.caixaverso.invest.infra.persistence.entity.ProdutoRiscoRegra;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;

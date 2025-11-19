@@ -1,6 +1,9 @@
 package br.com.caixaverso.invest.resource;
 
 import br.com.caixaverso.invest.application.dto.*;
+import br.com.caixaverso.invest.application.dto.request.SimularInvestimentoRequest;
+import br.com.caixaverso.invest.application.dto.response.PageResponse;
+import br.com.caixaverso.invest.application.dto.response.SimularInvestimentoResponse;
 import br.com.caixaverso.invest.infra.exception.ApiErrorDTO;
 import br.com.caixaverso.invest.infra.exception.BusinessException;
 
@@ -24,8 +27,6 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import br.com.caixaverso.invest.application.port.in.AgruparSimulacoesPorProdutoDiaUseCase;
 import br.com.caixaverso.invest.application.port.in.ListarSimulacoesUseCase;
 import br.com.caixaverso.invest.application.port.in.SimularInvestimentoUseCase;
-
-import java.util.List;
 
 @SecurityRequirement(name = "Authorization")
 @RequestScoped

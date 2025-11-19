@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.application.port.out;
 
-import br.com.caixaverso.invest.domain.model.TelemetriaRegistro;
+import br.com.caixaverso.invest.infra.persistence.entity.TelemetriaRegistro;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;

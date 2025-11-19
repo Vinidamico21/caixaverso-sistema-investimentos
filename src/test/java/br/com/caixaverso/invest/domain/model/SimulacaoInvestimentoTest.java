@@ -1,8 +1,8 @@
 package br.com.caixaverso.invest.domain.model;
 
-import br.com.caixaverso.invest.domain.model.Cliente;
-import br.com.caixaverso.invest.domain.model.ProdutoInvestimento;
-import br.com.caixaverso.invest.domain.model.SimulacaoInvestimento;
+import br.com.caixaverso.invest.infra.persistence.entity.Cliente;
+import br.com.caixaverso.invest.infra.persistence.entity.ProdutoInvestimento;
+import br.com.caixaverso.invest.infra.persistence.entity.SimulacaoInvestimento;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.junit.jupiter.api.Test;

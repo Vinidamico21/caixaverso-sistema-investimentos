@@ -1,5 +1,6 @@
 package br.com.caixaverso.invest.application.dto;
 
+import br.com.caixaverso.invest.application.dto.response.SimularInvestimentoResponse;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

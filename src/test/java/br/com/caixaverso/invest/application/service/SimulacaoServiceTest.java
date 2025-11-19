@@ -1,16 +1,16 @@
 package br.com.caixaverso.invest.application.service;
 
-import br.com.caixaverso.invest.application.dto.PageResponse;
-import br.com.caixaverso.invest.application.dto.SimularInvestimentoRequest;
-import br.com.caixaverso.invest.application.dto.SimularInvestimentoResponse;
+import br.com.caixaverso.invest.application.dto.response.PageResponse;
+import br.com.caixaverso.invest.application.dto.request.SimularInvestimentoRequest;
+import br.com.caixaverso.invest.application.dto.response.SimularInvestimentoResponse;
 import br.com.caixaverso.invest.application.dto.SimulacaoPorProdutoDiaDTO;
 import br.com.caixaverso.invest.application.dto.SimulacaoResumoDTO;
 import br.com.caixaverso.invest.application.port.out.ClientePort;
 import br.com.caixaverso.invest.application.port.out.ProdutoInvestimentoPort;
 import br.com.caixaverso.invest.application.port.out.SimulacaoInvestimentoPort;
-import br.com.caixaverso.invest.domain.model.Cliente;
-import br.com.caixaverso.invest.domain.model.ProdutoInvestimento;
-import br.com.caixaverso.invest.domain.model.SimulacaoInvestimento;
+import br.com.caixaverso.invest.infra.persistence.entity.Cliente;
+import br.com.caixaverso.invest.infra.persistence.entity.ProdutoInvestimento;
+import br.com.caixaverso.invest.infra.persistence.entity.SimulacaoInvestimento;
 import br.com.caixaverso.invest.infra.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -1,15 +1,20 @@
 package br.com.caixaverso.invest.application.service;
 
 import br.com.caixaverso.invest.application.dto.*;
-import br.com.caixaverso.invest.domain.model.*;
 import br.com.caixaverso.invest.application.port.in.AgruparSimulacoesPorProdutoDiaUseCase;
 import br.com.caixaverso.invest.application.port.in.ListarSimulacoesUseCase;
 import br.com.caixaverso.invest.application.port.in.SimularInvestimentoUseCase;
 import br.com.caixaverso.invest.application.port.out.ClientePort;
 import br.com.caixaverso.invest.application.port.out.ProdutoInvestimentoPort;
 import br.com.caixaverso.invest.application.port.out.SimulacaoInvestimentoPort;
+import br.com.caixaverso.invest.application.dto.request.SimularInvestimentoRequest;
+import br.com.caixaverso.invest.application.dto.response.PageResponse;
+import br.com.caixaverso.invest.application.dto.response.SimularInvestimentoResponse;
 import br.com.caixaverso.invest.infra.exception.NotFoundException;
 
+import br.com.caixaverso.invest.infra.persistence.entity.Cliente;
+import br.com.caixaverso.invest.infra.persistence.entity.ProdutoInvestimento;
+import br.com.caixaverso.invest.infra.persistence.entity.SimulacaoInvestimento;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -21,6 +26,7 @@ import java.util.stream.Collectors;
 
 import org.jboss.logging.Logger;
 
+import static br.com.caixaverso.invest.domain.constants.PerfilConstantes.*;
 import static br.com.caixaverso.invest.infra.util.RiscoMapper.mapearRiscoHumano;
 
 @ApplicationScoped
@@ -44,32 +50,32 @@ public class SimulacaoService implements
     @Transactional
     public SimularInvestimentoResponse executarSimulacao(SimularInvestimentoRequest request) {
 
-        LOG.infof("Iniciando simulacao | clienteId=%d | tipoProduto=%s | valor=%s | prazoMeses=%d",
-                request.getClienteId(), request.getTipoProduto(), request.getValor(), request.getPrazoMeses());
+        LOG.infof(LOG_SIM_INICIO,
+                request.getClienteId(), request.getTipoProduto(),
+                request.getValor(), request.getPrazoMeses());
 
         Cliente cliente = clientePort.findById(request.getClienteId())
                 .orElseThrow(() -> {
-                    LOG.warnf("Cliente nao encontrado para simulacao | clienteId=%d", request.getClienteId());
-                    return new NotFoundException("Cliente não encontrado.");
+                    LOG.warnf(LOG_SIM_CLIENTE_NAO_ENCONTRADO, request.getClienteId());
+                    return new NotFoundException(ERRO_CLIENTE_NAO_ENCONTRADO);
                 });
 
-        LOG.debugf("Cliente encontrado para simulacao | clienteId=%d", cliente.getId());
+        LOG.debugf(LOG_SIM_CLIENTE_ENCONTRADO, cliente.getId());
 
         List<ProdutoInvestimento> produtos = produtoPort.findByTipo(request.getTipoProduto());
 
         if (produtos.isEmpty()) {
-            LOG.warnf("Nenhum produto encontrado para o tipo solicitado | tipoProduto=%s", request.getTipoProduto());
-            throw new NotFoundException("Nenhum produto encontrado para o tipo solicitado");
+            LOG.warnf(LOG_SIM_PRODUTOS_NAO_ENCONTRADOS, request.getTipoProduto());
+            throw new NotFoundException(ERRO_PRODUTO_TIPO_NAO_ENCONTRADO);
         }
 
-        LOG.infof("Produtos encontrados para simulacao=%d | tipoProduto=%s",
-                produtos.size(), request.getTipoProduto());
+        LOG.infof(LOG_SIM_PRODUTOS_ENCONTRADOS, produtos.size(), request.getTipoProduto());
 
         ProdutoInvestimento melhorProduto = produtos.stream()
                 .max(Comparator.comparing(ProdutoInvestimento::getTaxaAnual))
                 .orElseThrow();
 
-        LOG.infof("Melhor produto selecionado | produtoId=%d | nome=%s | taxaAnual=%s",
+        LOG.infof(LOG_SIM_MELHOR_PRODUTO,
                 melhorProduto.getId(), melhorProduto.getNome(), melhorProduto.getTaxaAnual());
 
         BigDecimal valorFinal = calcularJurosCompostos(
@@ -78,8 +84,9 @@ public class SimulacaoService implements
                 request.getPrazoMeses()
         );
 
-        LOG.debugf("Resultado da simulacao | valorInicial=%s | taxaAnual=%s | prazoMeses=%d | valorFinal=%s",
-                request.getValor(), melhorProduto.getTaxaAnual(), request.getPrazoMeses(), valorFinal);
+        LOG.debugf(LOG_SIM_RESULTADO,
+                request.getValor(), melhorProduto.getTaxaAnual(),
+                request.getPrazoMeses(), valorFinal);
 
         SimulacaoInvestimento sim = SimulacaoInvestimento.builder()
                 .cliente(cliente)
@@ -91,29 +98,30 @@ public class SimulacaoService implements
                 .perfilRiscoCalculado(melhorProduto.getRisco())
                 .build();
 
-        LOG.infof("Persistindo simulacao de investimento | clienteId=%d | produtoId=%d | valorAplicado=%s | valorFinal=%s",
-                cliente.getId(), melhorProduto.getId(), sim.getValorAplicado(), sim.getValorFinal());
+        LOG.infof(LOG_SIM_PERSISTENCIA,
+                cliente.getId(), melhorProduto.getId(),
+                sim.getValorAplicado(), sim.getValorFinal());
 
         simulacaoPort.salvar(sim);
 
-        LOG.debug("Simulacao de investimento salva com sucesso.");
+        LOG.debug(LOG_SIM_SALVA);
 
-        SimularInvestimentoResponse response = montarRespostaSimulacao(melhorProduto, valorFinal, request.getPrazoMeses());
+        SimularInvestimentoResponse response =
+                montarRespostaSimulacao(melhorProduto, valorFinal, request.getPrazoMeses());
 
-        LOG.infof("Simulacao concluida | clienteId=%d | produto=%s | valorFinal=%s | prazoMeses=%d",
-                request.getClienteId(), melhorProduto.getNome(), valorFinal, request.getPrazoMeses());
+        LOG.infof(LOG_SIM_FINAL,
+                request.getClienteId(), melhorProduto.getNome(),
+                valorFinal, request.getPrazoMeses());
 
         return response;
     }
 
+
     private SimularInvestimentoResponse montarRespostaSimulacao(
             ProdutoInvestimento produto, BigDecimal valorFinal, int prazoMeses) {
 
-        LOG.debugf(
-                "Montando resposta de simulacao | produtoId=%d | valorFinal=%s | prazoMeses=%d",
-                produto.getId().longValue(),
-                prazoMeses
-        );
+        LOG.debugf(LOG_SIM_MONTANDO_RESPOSTA,
+                Optional.ofNullable(produto.getId()), valorFinal, prazoMeses);
 
         ProdutoValidadoDTO produtoDto = ProdutoValidadoDTO.builder()
                 .id(produto.getId())
@@ -135,7 +143,7 @@ public class SimulacaoService implements
                 .dataSimulacao(OffsetDateTime.now(ZoneOffset.UTC))
                 .build();
 
-        LOG.debug("Resposta de simulacao montada com sucesso.");
+        LOG.debug(LOG_SIM_RESPOSTA_OK);
 
         return response;
     }
@@ -143,19 +151,15 @@ public class SimulacaoService implements
     @Override
     public PageResponse<SimulacaoResumoDTO> listarSimulacoes(Long clienteId, int page, int size) {
 
-        LOG.infof("Listando simulacoes | filtroClienteId=%s | page=%d | size=%d",
-                clienteId, page, size);
+        LOG.infof(LOG_LISTAR_SIM_INICIO, clienteId, page, size);
 
-        // carrega simulações
         List<SimulacaoInvestimento> sims =
                 clienteId == null ? simulacaoPort.listar() : simulacaoPort.listarPorClienteId(clienteId);
 
-        LOG.infof("Total de simulacoes encontradas=%d", sims.size());
+        LOG.infof(LOG_LISTAR_SIM_TOTAL, sims.size());
 
-        // mapeia para DTOs
         List<SimulacaoResumoDTO> todosDtos = sims.stream()
-                .peek(sim -> LOG.debugf(
-                        "Simulacao encontrada | id=%d | clienteId=%d | produto=%s | valorAplicado=%s | valorFinal=%s",
+                .peek(sim -> LOG.debugf(LOG_LISTAR_SIM_ITEM,
                         sim.getId(),
                         sim.getCliente().getId(),
                         sim.getProduto().getNome(),
@@ -175,9 +179,7 @@ public class SimulacaoService implements
 
         int totalElements = todosDtos.size();
 
-        if (size <= 0) {
-            size = 20;
-        }
+        if (size <= 0) size = 20;
 
         int fromIndex = Math.min(page * size, totalElements);
         int toIndex = Math.min(fromIndex + size, totalElements);
@@ -187,8 +189,7 @@ public class SimulacaoService implements
 
         int totalPages = (int) Math.ceil((double) totalElements / size);
 
-        LOG.infof("Pagina gerada | page=%d | size=%d | totalElements=%d | totalPages=%d",
-                page, size, totalElements, totalPages);
+        LOG.infof(LOG_LISTAR_SIM_PAGINA, page, size, totalElements, totalPages);
 
         return PageResponse.<SimulacaoResumoDTO>builder()
                 .content(pageContent)
@@ -203,33 +204,30 @@ public class SimulacaoService implements
     @Override
     public PageResponse<SimulacaoPorProdutoDiaDTO> agrupamentoPorProdutoDia(int page, int size) {
 
-        LOG.info("Iniciando agrupamento de simulacoes por produto e dia.");
+        LOG.info(LOG_AGRUP_INICIO);
 
         List<SimulacaoInvestimento> simulacoes = simulacaoPort.listar();
 
-        LOG.infof("Total de simulacoes carregadas para agrupamento=%d", simulacoes.size());
+        LOG.infof(LOG_AGRUP_TOTAL, simulacoes.size());
 
         Map<String, Map<LocalDate, List<SimulacaoInvestimento>>> agrupado =
                 simulacoes.stream()
                         .collect(Collectors.groupingBy(
-                                sim -> sim.getProduto().getNome(), // ainda precisa da entidade ProdutoInvestimento OK
+                                sim -> sim.getProduto().getNome(),
                                 Collectors.groupingBy(sim -> {
                                     LocalDate dia = sim.getDataSimulacaoDia();
-                                    if (dia != null) {
-                                        return dia;
-                                    }
-                                    return sim.getDataSimulacao().toLocalDate();
+                                    return dia != null ? dia : sim.getDataSimulacao().toLocalDate();
                                 })
                         ));
 
         List<SimulacaoPorProdutoDiaDTO> resposta = new ArrayList<>();
 
         for (var entryProduto : agrupado.entrySet()) {
-            String produto = entryProduto.getKey();
 
-            LOG.debugf("Processando agrupamento para produto=%s", produto);
+            LOG.debugf(LOG_AGRUP_PROCESSANDO_PRODUTO, entryProduto.getKey());
 
             for (var entryDia : entryProduto.getValue().entrySet()) {
+
                 LocalDate data = entryDia.getKey();
                 List<SimulacaoInvestimento> simsDoDia = entryDia.getValue();
 
@@ -238,11 +236,11 @@ public class SimulacaoService implements
                         .reduce(BigDecimal.ZERO, BigDecimal::add)
                         .divide(BigDecimal.valueOf(simsDoDia.size()), 2, RoundingMode.HALF_UP);
 
-                LOG.debugf("Agrupamento gerado | produto=%s | data=%s | qtdSimulacoes=%d | mediaValorFinal=%s",
-                        produto, data, simsDoDia.size(), media);
+                LOG.debugf(LOG_AGRUP_REGISTRO,
+                        entryProduto.getKey(), data, simsDoDia.size(), media);
 
                 resposta.add(SimulacaoPorProdutoDiaDTO.builder()
-                        .produto(produto)
+                        .produto(entryProduto.getKey())
                         .data(data)
                         .quantidadeSimulacoes((long) simsDoDia.size())
                         .mediaValorFinal(media)
@@ -250,13 +248,14 @@ public class SimulacaoService implements
             }
         }
 
-        resposta.sort(Comparator
-                .comparing(SimulacaoPorProdutoDiaDTO::getData).reversed()
-                .thenComparing(SimulacaoPorProdutoDiaDTO::getProduto));
+        resposta.sort(
+                Comparator.comparing(SimulacaoPorProdutoDiaDTO::getData).reversed()
+                        .thenComparing(SimulacaoPorProdutoDiaDTO::getProduto)
+        );
 
-        LOG.infof("Total de registros de agrupamento por produto/dia gerados=%d", resposta.size());
+        LOG.infof(LOG_AGRUP_FINAL, resposta.size());
 
-        // ---- paginação em memória ----
+        // paginação em memória
         int totalElements = resposta.size();
         int fromIndex = Math.min(page * size, totalElements);
         int toIndex = Math.min(fromIndex + size, totalElements);
@@ -278,16 +277,16 @@ public class SimulacaoService implements
     // CÁLCULO
     private BigDecimal calcularJurosCompostos(BigDecimal valor, BigDecimal taxaAnual, int meses) {
 
-        LOG.debugf("Calculando juros compostos | valor=%s | taxaAnual=%s | meses=%d",
-                valor, taxaAnual, meses);
+        LOG.debugf(LOG_JUROS_INICIO, valor, taxaAnual, meses);
 
-        BigDecimal taxaMensal = taxaAnual.divide(BigDecimal.valueOf(12), 10, RoundingMode.HALF_UP);
+        BigDecimal taxaMensal =
+                taxaAnual.divide(BigDecimal.valueOf(12), 10, RoundingMode.HALF_UP);
 
         BigDecimal resultado = valor
                 .multiply(BigDecimal.ONE.add(taxaMensal).pow(meses))
                 .setScale(2, RoundingMode.HALF_UP);
 
-        LOG.debugf("Juros compostos calculados | resultado=%s", resultado);
+        LOG.debugf(LOG_JUROS_RESULTADO, resultado);
 
         return resultado;
     }

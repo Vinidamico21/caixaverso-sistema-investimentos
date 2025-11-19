@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.infra.repository;
 
-import br.com.caixaverso.invest.domain.model.ProdutoInvestimento;
+import br.com.caixaverso.invest.infra.persistence.entity.ProdutoInvestimento;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;

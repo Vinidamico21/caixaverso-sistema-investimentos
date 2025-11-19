@@ -1,5 +1,7 @@
-package br.com.caixaverso.invest.application.dto;
+package br.com.caixaverso.invest.application.dto.response;
 
+import br.com.caixaverso.invest.application.dto.ProdutoValidadoDTO;
+import br.com.caixaverso.invest.application.dto.ResultadoSimulacaoDTO;
 import lombok.*;
 
 import java.time.OffsetDateTime;

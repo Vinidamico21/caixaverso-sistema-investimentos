@@ -4,7 +4,7 @@ import br.com.caixaverso.invest.application.dto.TelemetriaPeriodoDTO;
 import br.com.caixaverso.invest.application.dto.TelemetriaResponseDTO;
 import br.com.caixaverso.invest.application.dto.TelemetriaServicoDTO;
 import br.com.caixaverso.invest.application.port.out.TelemetriaPort;
-import br.com.caixaverso.invest.domain.model.TelemetriaRegistro;
+import br.com.caixaverso.invest.infra.persistence.entity.TelemetriaRegistro;
 import br.com.caixaverso.invest.infra.exception.BusinessException;
 import br.com.caixaverso.invest.infra.repository.TelemetriaRegistroRepository;
 import jakarta.persistence.EntityManager;
@@ -15,7 +15,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 

@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.domain.model;
 
-import br.com.caixaverso.invest.domain.model.FrequenciaInvestRegra;
+import br.com.caixaverso.invest.infra.persistence.entity.FrequenciaInvestRegra;
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;

@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.application.dto;
 
-import br.com.caixaverso.invest.application.dto.SimularInvestimentoRequest;
+import br.com.caixaverso.invest.application.dto.request.SimularInvestimentoRequest;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 

@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.infra.adapter;
 
-import br.com.caixaverso.invest.domain.model.FrequenciaSimulacaoRegra;
+import br.com.caixaverso.invest.infra.persistence.entity.FrequenciaSimulacaoRegra;
 import br.com.caixaverso.invest.application.port.out.FrequenciaSimulacaoRegraPort;
 import br.com.caixaverso.invest.infra.repository.FrequenciaSimulacaoRegraRepository;
 import jakarta.enterprise.context.ApplicationScoped;

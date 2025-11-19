@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.infra.adapter;
 
-import br.com.caixaverso.invest.domain.model.TelemetriaRegistro;
+import br.com.caixaverso.invest.infra.persistence.entity.TelemetriaRegistro;
 import br.com.caixaverso.invest.infra.repository.TelemetriaRegistroRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

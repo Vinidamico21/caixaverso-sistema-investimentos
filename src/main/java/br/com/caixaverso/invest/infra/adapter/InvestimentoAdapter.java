@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.infra.adapter;
 
-import br.com.caixaverso.invest.domain.model.Investimento;
+import br.com.caixaverso.invest.infra.persistence.entity.Investimento;
 import br.com.caixaverso.invest.application.port.out.InvestimentoPort;
 import br.com.caixaverso.invest.infra.repository.InvestimentoRepository;
 import jakarta.enterprise.context.ApplicationScoped;

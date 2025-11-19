@@ -1,7 +1,7 @@
 package br.com.caixaverso.invest.resource;
 
 import br.com.caixaverso.invest.application.dto.InvestimentoResponseDTO;
-import br.com.caixaverso.invest.application.dto.PageResponse;
+import br.com.caixaverso.invest.application.dto.response.PageResponse;
 import br.com.caixaverso.invest.application.port.in.ListarInvestimentosPorClienteUseCase;
 import br.com.caixaverso.invest.infra.exception.ApiErrorDTO;
 import jakarta.annotation.security.RolesAllowed;

@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.infra.repository;
 
-import br.com.caixaverso.invest.domain.model.FrequenciaSimulacaoRegra;
+import br.com.caixaverso.invest.infra.persistence.entity.FrequenciaSimulacaoRegra;
 import io.quarkus.cache.CacheResult;
 import io.quarkus.hibernate.orm.panache.PanacheRepository;
 import jakarta.enterprise.context.ApplicationScoped;

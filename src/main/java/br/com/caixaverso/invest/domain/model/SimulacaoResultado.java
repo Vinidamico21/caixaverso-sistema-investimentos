@@ -1,5 +1,6 @@
 package br.com.caixaverso.invest.domain.model;
 
+import br.com.caixaverso.invest.infra.persistence.entity.ProdutoInvestimento;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;

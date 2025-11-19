@@ -3,7 +3,7 @@ package br.com.caixaverso.invest.application.service;
 import br.com.caixaverso.invest.application.dto.TelemetriaPeriodoDTO;
 import br.com.caixaverso.invest.application.dto.TelemetriaResponseDTO;
 import br.com.caixaverso.invest.application.dto.TelemetriaServicoDTO;
-import br.com.caixaverso.invest.domain.model.TelemetriaRegistro;
+import br.com.caixaverso.invest.infra.persistence.entity.TelemetriaRegistro;
 import br.com.caixaverso.invest.application.port.in.GerarRelatorioTelemetriaUseCase;
 import br.com.caixaverso.invest.application.port.in.RegistrarTelemetriaUseCase;
 import br.com.caixaverso.invest.application.port.out.TelemetriaPort;
@@ -19,6 +19,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static br.com.caixaverso.invest.domain.constants.PerfilConstantes.*;
+
 @ApplicationScoped
 public class TelemetriaService implements
         GerarRelatorioTelemetriaUseCase,
@@ -32,9 +34,7 @@ public class TelemetriaService implements
     @Inject
     TelemetriaRegistroRepository telemetriaRepository;
 
-    // =============================================================
-    //                    REGISTRO DE TELEMETRIA
-    // =============================================================
+    // REGISTRO DE TELEMETRIA
     @Transactional
     public void registrar(
             Long clienteId,
@@ -46,7 +46,7 @@ public class TelemetriaService implements
     ) {
         validarRegistro(endpoint, metodoHttp, statusHttp, duracaoMs);
 
-        LOG.debugf("Registrando telemetria | endpoint=%s | metodo=%s | status=%d | duracaoMs=%d",
+        LOG.debugf(LOG_TELEMETRIA_REGISTRANDO,
                 endpoint, metodoHttp, statusHttp, duracaoMs);
 
         TelemetriaRegistro reg = TelemetriaRegistro.builder()
@@ -62,26 +62,24 @@ public class TelemetriaService implements
 
     private void validarRegistro(String endpoint, String metodoHttp, int statusHttp, int duracaoMs) {
         if (endpoint == null || endpoint.isBlank()) {
-            throw new BusinessException("Endpoint de telemetria é obrigatório.");
+            throw new BusinessException(ERR_TELEMETRIA_ENDPOINT_OBRIGATORIO);
         }
         if (metodoHttp == null || metodoHttp.isBlank()) {
-            throw new BusinessException("Método HTTP de telemetria é obrigatório.");
+            throw new BusinessException(ERR_TELEMETRIA_METODO_OBRIGATORIO);
         }
         if (statusHttp < 100 || statusHttp > 599) {
-            throw new BusinessException("Status HTTP inválido na telemetria: " + statusHttp);
+            throw new BusinessException(ERR_TELEMETRIA_STATUS_INVALIDO + statusHttp);
         }
         if (duracaoMs < 0) {
-            throw new BusinessException("Duração da requisição (ms) não pode ser negativa.");
+            throw new BusinessException(ERR_TELEMETRIA_DURACAO_NEGATIVA);
         }
     }
 
-    // =============================================================
-    //                     RELATÓRIO DE TELEMETRIA
-    // =============================================================
+    // RELATÓRIO DE TELEMETRIA
     @Transactional
     public TelemetriaResponseDTO gerarRelatorio() {
 
-        LOG.infof("Gerando relatório de telemetria");
+        LOG.info(LOG_TELEMETRIA_RELATORIO_INICIO);
 
         List<Object[]> results = telemetriaRepository.getEntityManager()
                 .createQuery(
@@ -98,6 +96,7 @@ public class TelemetriaService implements
         LocalDate fim = null;
 
         for (Object[] row : results) {
+
             String metodo = (String) row[0];
             String endpoint = (String) row[1];
             long qtdChamadas = (Long) row[2];
@@ -109,16 +108,12 @@ public class TelemetriaService implements
 
             if (primeira != null) {
                 LocalDate d = primeira.toLocalDate();
-                if (inicio == null || d.isBefore(inicio)) {
-                    inicio = d;
-                }
+                if (inicio == null || d.isBefore(inicio)) inicio = d;
             }
 
             if (ultima != null) {
                 LocalDate d = ultima.toLocalDate();
-                if (fim == null || d.isAfter(fim)) {
-                    fim = d;
-                }
+                if (fim == null || d.isAfter(fim)) fim = d;
             }
 
             servicos.add(
@@ -146,7 +141,7 @@ public class TelemetriaService implements
                 .periodo(periodo)
                 .build();
 
-        LOG.infof("Relatório de telemetria gerado | servicos=%d | periodo=%s até %s",
+        LOG.infof(LOG_TELEMETRIA_RELATORIO_FIM,
                 servicos.size(), inicio, fim);
 
         return response;

@@ -1,7 +1,6 @@
 package br.com.caixaverso.invest.infra.adapter;
 
-import br.com.caixaverso.invest.domain.model.PreferenciaRegra;
-import br.com.caixaverso.invest.infra.adapter.PreferenciaRegraAdapter;
+import br.com.caixaverso.invest.infra.persistence.entity.PreferenciaRegra;
 import br.com.caixaverso.invest.infra.repository.PreferenciaRegraRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

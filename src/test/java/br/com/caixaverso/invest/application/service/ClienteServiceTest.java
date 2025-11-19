@@ -1,8 +1,7 @@
 package br.com.caixaverso.invest.application.service;
 
 import br.com.caixaverso.invest.application.port.out.ClientePort;
-import br.com.caixaverso.invest.application.service.ClienteService;
-import br.com.caixaverso.invest.domain.model.Cliente;
+import br.com.caixaverso.invest.infra.persistence.entity.Cliente;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

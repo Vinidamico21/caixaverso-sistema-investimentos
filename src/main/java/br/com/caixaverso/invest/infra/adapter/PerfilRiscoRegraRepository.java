@@ -1,6 +1,6 @@
 package br.com.caixaverso.invest.infra.adapter;
 
-import br.com.caixaverso.invest.domain.model.PerfilRiscoRegra;
+import br.com.caixaverso.invest.infra.persistence.entity.PerfilRiscoRegra;
 import io.quarkus.cache.CacheKey;
 import io.quarkus.cache.CacheResult;
 import io.quarkus.hibernate.orm.panache.PanacheRepository;

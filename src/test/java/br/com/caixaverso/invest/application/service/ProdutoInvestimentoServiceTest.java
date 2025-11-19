@@ -1,8 +1,7 @@
 package br.com.caixaverso.invest.application.service;
 
 import br.com.caixaverso.invest.application.port.out.ProdutoInvestimentoPort;
-import br.com.caixaverso.invest.application.service.ProdutoInvestimentoService;
-import br.com.caixaverso.invest.domain.model.ProdutoInvestimento;
+import br.com.caixaverso.invest.infra.persistence.entity.ProdutoInvestimento;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.BeforeEach;

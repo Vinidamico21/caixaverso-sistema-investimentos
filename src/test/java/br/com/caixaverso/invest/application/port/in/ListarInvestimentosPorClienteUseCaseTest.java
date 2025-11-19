@@ -1,7 +1,6 @@
 package br.com.caixaverso.invest.application.port.in;
 
-import br.com.caixaverso.invest.application.dto.InvestimentoResponseDTO;
-import br.com.caixaverso.invest.application.dto.PageResponse;
+import br.com.caixaverso.invest.application.dto.response.PageResponse;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;

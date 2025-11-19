@@ -1,4 +1,4 @@
-package br.com.caixaverso.invest.application.dto;
+package br.com.caixaverso.invest.application.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

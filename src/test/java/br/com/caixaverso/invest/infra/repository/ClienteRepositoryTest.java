@@ -1,7 +1,6 @@
 package br.com.caixaverso.invest.infra.repository;
 
-import br.com.caixaverso.invest.domain.model.Cliente;
-import br.com.caixaverso.invest.infra.repository.ClienteRepository;
+import br.com.caixaverso.invest.infra.persistence.entity.Cliente;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

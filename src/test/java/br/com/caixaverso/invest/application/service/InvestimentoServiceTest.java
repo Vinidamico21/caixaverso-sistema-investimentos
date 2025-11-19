@@ -1,9 +1,9 @@
 package br.com.caixaverso.invest.application.service;
 
 import br.com.caixaverso.invest.application.dto.InvestimentoResponseDTO;
-import br.com.caixaverso.invest.application.dto.PageResponse;
-import br.com.caixaverso.invest.domain.model.Investimento;
-import br.com.caixaverso.invest.domain.model.ProdutoInvestimento;
+import br.com.caixaverso.invest.application.dto.response.PageResponse;
+import br.com.caixaverso.invest.infra.persistence.entity.Investimento;
+import br.com.caixaverso.invest.infra.persistence.entity.ProdutoInvestimento;
 import br.com.caixaverso.invest.infra.repository.InvestimentoRepository;
 import io.quarkus.panache.common.Page;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;

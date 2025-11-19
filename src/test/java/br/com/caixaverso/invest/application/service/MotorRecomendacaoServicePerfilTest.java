@@ -4,10 +4,12 @@ import br.com.caixaverso.invest.application.dto.PerfilRiscoResponseDTO;
 import br.com.caixaverso.invest.application.dto.ProdutoRecomendadoDTO;
 import br.com.caixaverso.invest.application.dto.RecomendacaoResponseDTO;
 import br.com.caixaverso.invest.application.port.out.*;
-import br.com.caixaverso.invest.application.service.MotorRecomendacaoService;
-import br.com.caixaverso.invest.domain.model.*;
 import br.com.caixaverso.invest.infra.exception.BusinessException;
 import br.com.caixaverso.invest.infra.exception.NotFoundException;
+import br.com.caixaverso.invest.infra.persistence.entity.Cliente;
+import br.com.caixaverso.invest.infra.persistence.entity.PerfilRiscoRegra;
+import br.com.caixaverso.invest.infra.persistence.entity.ProdutoInvestimento;
+import br.com.caixaverso.invest.infra.persistence.entity.SimulacaoInvestimento;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -180,7 +182,7 @@ class MotorRecomendacaoServicePerfilTest {
         List<ProdutoRecomendadoDTO> resp = service.recomendarPorPerfil(null);
 
         assertNotNull(resp);
-        assertEquals(1, resp.size());
+        assertEquals(0, resp.size());
     }
 
     @Test
