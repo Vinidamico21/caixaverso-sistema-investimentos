@@ -505,6 +505,11 @@ docker compose up -d
 
 ---
 
+### 8.3. Usando a imagem do Docker Hub
+
+# Puxar a imagem oficial
+docker pull vinipereira21/caixaverso-sistema-investimentos:latest
+ 
 ## 9. Massa de Teste – Parâmetros para o Avaliador
 
 A base já sobe com uma massa de **clientes**, **produtos**, **investimentos**, **simulações** e **regras de risco**.  
