@@ -45,9 +45,6 @@ public class SimulacaoResource {
     @Inject
     AgruparSimulacoesPorProdutoDiaUseCase agrupamentoUseCase;
 
-    // ----------------------------------------------------
-    // POST /api/v1/simular-investimento
-    // ----------------------------------------------------
     @POST
     @Path("/simular-investimento")
     @Operation(
@@ -58,16 +55,23 @@ public class SimulacaoResource {
             @APIResponse(
                     responseCode = "200",
                     description = "Simulação realizada com sucesso.",
-                    content = @Content(schema = @Schema(implementation = SimularInvestimentoResponse.class))
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(implementation = SimularInvestimentoResponse.class)
+                    )
             ),
             @APIResponse(
                     responseCode = "400",
                     description = "Dados inválidos.",
-                    content = @Content(schema = @Schema(implementation = ApiErrorDTO.class))
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(implementation = ApiErrorDTO.class)
+                    )
             )
     })
     public Response simularInvestimento(
-            @RequestBody(required = true)
+            @RequestBody(required = true,
+                    description = "Dados para simulação de investimento")
             @Valid SimularInvestimentoRequest request) {
 
         SimularInvestimentoResponse response =
@@ -76,15 +80,50 @@ public class SimulacaoResource {
         return Response.ok(response).build();
     }
 
-    // ----------------------------------------------------
-    // GET /api/v1/simulacoes?clienteId=...
-    // ----------------------------------------------------
     @GET
     @Path("/simulacoes")
-    @Operation(summary = "Lista simulações realizadas")
+    @Operation(
+            summary = "Lista simulações realizadas",
+            description = "Retorna o histórico de simulações realizadas com paginação em memória, " +
+                    "opcionalmente filtrando por cliente."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "Página de simulações retornada com sucesso.",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(
+                                    implementation = PageResponse.class,
+                                    description = "Página contendo SimulacaoResumoDTO"
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "400",
+                    description = "Parâmetro 'clienteId' inválido ou parâmetros de paginação inválidos.",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(implementation = ApiErrorDTO.class)
+                    )
+            )
+    })
     public Response listarSimulacoes(
-            @Parameter(description = "Filtro opcional pelo ID do cliente")
-            @QueryParam("clienteId") String clienteIdParam) {
+            @Parameter(
+                    description = "Filtro opcional pelo ID do cliente",
+                    example = "10"
+            )
+            @QueryParam("clienteId") String clienteIdParam,
+            @Parameter(
+                    description = "Número da página (0-based)",
+                    example = "0"
+            )
+            @QueryParam("page") @DefaultValue("0") int page,
+            @Parameter(
+                    description = "Quantidade de registros por página",
+                    example = "20"
+            )
+            @QueryParam("size") @DefaultValue("20") int size) {
 
         Long clienteId = null;
 
@@ -96,20 +135,53 @@ public class SimulacaoResource {
             }
         }
 
-        List<SimulacaoResumoDTO> lista = listarUseCase.listarSimulacoes(clienteId);
-        return Response.ok(lista).build();
+        PageResponse<SimulacaoResumoDTO> pagina =
+                listarUseCase.listarSimulacoes(clienteId, page, size);
+
+        return Response.ok(pagina).build();
     }
 
-    // ----------------------------------------------------
-    // GET /api/v1/simulacoes/por-produto-dia
-    // ----------------------------------------------------
     @GET
     @Path("/simulacoes/por-produto-dia")
-    @Operation(summary = "Consolida simulações por produto e dia")
-    public Response listarSimulacoesPorProdutoDia() {
+    @Operation(
+            summary = "Consolida simulações por produto e dia",
+            description = "Retorna estatísticas agregadas de simulações por produto e data (quantidade e média do valor final), com paginação em memória."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "Consulta de simulações por produto/dia realizada com sucesso.",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(
+                                    implementation = PageResponse.class,
+                                    description = "Página de resultados contendo SimulacaoPorProdutoDiaDTO"
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "400",
+                    description = "Parâmetros de paginação inválidos.",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(implementation = ApiErrorDTO.class)
+                    )
+            )
+    })
+    public Response listarSimulacoesPorProdutoDia(
+            @Parameter(
+                    description = "Número da página (0-based)",
+                    example = "0"
+            )
+            @QueryParam("page") @DefaultValue("0") int page,
+            @Parameter(
+                    description = "Quantidade de registros por página",
+                    example = "20"
+            )
+            @QueryParam("size") @DefaultValue("20") int size) {
 
-        List<SimulacaoPorProdutoDiaDTO> resposta =
-                agrupamentoUseCase.agrupamentoPorProdutoDia();
+        PageResponse<SimulacaoPorProdutoDiaDTO> resposta =
+                agrupamentoUseCase.agrupamentoPorProdutoDia(page, size);
 
         return Response.ok(resposta).build();
     }

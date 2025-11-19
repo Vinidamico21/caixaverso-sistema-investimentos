@@ -1,11 +1,10 @@
 package br.com.caixaverso.invest.application.port.in;
 
 import br.com.caixaverso.invest.application.dto.InvestimentoResponseDTO;
-
-import java.util.List;
+import br.com.caixaverso.invest.application.dto.PageResponse;
 
 public interface ListarInvestimentosPorClienteUseCase {
 
-    List<InvestimentoResponseDTO> listarPorCliente(String clienteIdRaw);
+    PageResponse<InvestimentoResponseDTO> listarPorCliente(String clienteIdRaw, int page, int size);
 
 }

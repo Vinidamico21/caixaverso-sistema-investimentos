@@ -1,6 +1,8 @@
 package br.com.caixaverso.invest.resource;
 
 import br.com.caixaverso.invest.application.dto.InvestimentoResponseDTO;
+import br.com.caixaverso.invest.application.dto.PageResponse;
+import br.com.caixaverso.invest.application.port.in.ListarInvestimentosPorClienteUseCase;
 import br.com.caixaverso.invest.infra.exception.ApiErrorDTO;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.RequestScoped;
@@ -16,9 +18,6 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-import br.com.caixaverso.invest.application.port.in.ListarInvestimentosPorClienteUseCase;
-
-import java.util.List;
 
 @SecurityRequirement(name = "Authorization")
 @RequestScoped
@@ -35,13 +34,20 @@ public class InvestimentoResource {
     @Path("/{clienteId}")
     @Operation(
             summary = "Lista investimentos de um cliente",
-            description = "Retorna a lista de investimentos realizados por um cliente, ordenados da data mais recente para a mais antiga."
+            description = "Retorna a lista paginada de investimentos realizados por um cliente, " +
+                    "ordenados da data mais recente para a mais antiga."
     )
     @APIResponses({
             @APIResponse(
                     responseCode = "200",
-                    description = "Lista de investimentos retornada com sucesso.",
-                    content = @Content(schema = @Schema(implementation = InvestimentoResponseDTO.class))
+                    description = "Página de investimentos retornada com sucesso.",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(
+                                    implementation = PageResponse.class,
+                                    description = "Página de resultados contendo InvestimentoResponseDTO"
+                            )
+                    )
             ),
             @APIResponse(
                     responseCode = "400",
@@ -65,10 +71,20 @@ public class InvestimentoResource {
                     required = true,
                     example = "123"
             )
-            @PathParam("clienteId") String clienteIdRaw) {
+            @PathParam("clienteId") String clienteIdRaw,
+            @Parameter(
+                    description = "Número da página (0-based).",
+                    example = "0"
+            )
+            @QueryParam("page") @DefaultValue("0") int page,
+            @Parameter(
+                    description = "Quantidade de registros por página.",
+                    example = "20"
+            )
+            @QueryParam("size") @DefaultValue("20") int size) {
 
-        List<InvestimentoResponseDTO> resposta =
-                listarInvestimentosUseCase.listarPorCliente(clienteIdRaw);
+        PageResponse<InvestimentoResponseDTO> resposta =
+                listarInvestimentosUseCase.listarPorCliente(clienteIdRaw, page, size);
 
         return Response.ok(resposta).build();
     }

@@ -15,3 +15,4 @@ public class FrequenciaSimulacaoRegraRepository implements PanacheRepository<Fre
         return listAll();
     }
 }
+

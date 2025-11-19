@@ -140,23 +140,28 @@ public class SimulacaoService implements
         return response;
     }
 
-    // LISTAR SIMULAÇÕES
-    public List<SimulacaoResumoDTO> listarSimulacoes(Long clienteId) {
+    @Override
+    public PageResponse<SimulacaoResumoDTO> listarSimulacoes(Long clienteId, int page, int size) {
 
-        LOG.infof("Listando simulacoes | filtroClienteId=%s", clienteId);
+        LOG.infof("Listando simulacoes | filtroClienteId=%s | page=%d | size=%d",
+                clienteId, page, size);
 
+        // carrega simulações
         List<SimulacaoInvestimento> sims =
                 clienteId == null ? simulacaoPort.listar() : simulacaoPort.listarPorClienteId(clienteId);
 
         LOG.infof("Total de simulacoes encontradas=%d", sims.size());
 
-        return sims.stream()
-                .peek(sim -> LOG.debugf("Simulacao encontrada | id=%d | clienteId=%d | produto=%s | valorAplicado=%s | valorFinal=%s",
+        // mapeia para DTOs
+        List<SimulacaoResumoDTO> todosDtos = sims.stream()
+                .peek(sim -> LOG.debugf(
+                        "Simulacao encontrada | id=%d | clienteId=%d | produto=%s | valorAplicado=%s | valorFinal=%s",
                         sim.getId(),
                         sim.getCliente().getId(),
                         sim.getProduto().getNome(),
                         sim.getValorAplicado(),
-                        sim.getValorFinal()))
+                        sim.getValorFinal()
+                ))
                 .map(sim -> SimulacaoResumoDTO.builder()
                         .id(sim.getId())
                         .clienteId(sim.getCliente().getId())
@@ -167,10 +172,36 @@ public class SimulacaoService implements
                         .dataSimulacao(sim.getDataSimulacao().atOffset(ZoneOffset.UTC))
                         .build())
                 .toList();
+
+        int totalElements = todosDtos.size();
+
+        if (size <= 0) {
+            size = 20;
+        }
+
+        int fromIndex = Math.min(page * size, totalElements);
+        int toIndex = Math.min(fromIndex + size, totalElements);
+
+        List<SimulacaoResumoDTO> pageContent =
+                fromIndex > toIndex ? List.of() : todosDtos.subList(fromIndex, toIndex);
+
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+
+        LOG.infof("Pagina gerada | page=%d | size=%d | totalElements=%d | totalPages=%d",
+                page, size, totalElements, totalPages);
+
+        return PageResponse.<SimulacaoResumoDTO>builder()
+                .content(pageContent)
+                .page(page)
+                .size(size)
+                .totalElements(totalElements)
+                .totalPages(totalPages)
+                .build();
     }
 
     // AGRUPAMENTO por PRODUTO/DIA
-    public List<SimulacaoPorProdutoDiaDTO> agrupamentoPorProdutoDia() {
+    @Override
+    public PageResponse<SimulacaoPorProdutoDiaDTO> agrupamentoPorProdutoDia(int page, int size) {
 
         LOG.info("Iniciando agrupamento de simulacoes por produto e dia.");
 
@@ -179,10 +210,17 @@ public class SimulacaoService implements
         LOG.infof("Total de simulacoes carregadas para agrupamento=%d", simulacoes.size());
 
         Map<String, Map<LocalDate, List<SimulacaoInvestimento>>> agrupado =
-                simulacoes.stream().collect(Collectors.groupingBy(
-                        sim -> sim.getProduto().getNome(),
-                        Collectors.groupingBy(sim -> sim.getDataSimulacao().toLocalDate())
-                ));
+                simulacoes.stream()
+                        .collect(Collectors.groupingBy(
+                                sim -> sim.getProduto().getNome(), // ainda precisa da entidade ProdutoInvestimento OK
+                                Collectors.groupingBy(sim -> {
+                                    LocalDate dia = sim.getDataSimulacaoDia();
+                                    if (dia != null) {
+                                        return dia;
+                                    }
+                                    return sim.getDataSimulacao().toLocalDate();
+                                })
+                        ));
 
         List<SimulacaoPorProdutoDiaDTO> resposta = new ArrayList<>();
 
@@ -212,9 +250,29 @@ public class SimulacaoService implements
             }
         }
 
+        resposta.sort(Comparator
+                .comparing(SimulacaoPorProdutoDiaDTO::getData).reversed()
+                .thenComparing(SimulacaoPorProdutoDiaDTO::getProduto));
+
         LOG.infof("Total de registros de agrupamento por produto/dia gerados=%d", resposta.size());
 
-        return resposta;
+        // ---- paginação em memória ----
+        int totalElements = resposta.size();
+        int fromIndex = Math.min(page * size, totalElements);
+        int toIndex = Math.min(fromIndex + size, totalElements);
+
+        List<SimulacaoPorProdutoDiaDTO> pageContent =
+                fromIndex > toIndex ? List.of() : resposta.subList(fromIndex, toIndex);
+
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+
+        return PageResponse.<SimulacaoPorProdutoDiaDTO>builder()
+                .content(pageContent)
+                .page(page)
+                .size(size)
+                .totalElements(totalElements)
+                .totalPages(totalPages)
+                .build();
     }
 
     // CÁLCULO

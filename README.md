@@ -211,40 +211,75 @@ Response (`SimularInvestimentoResponse`):
 }
 ```
 
-#### `GET /api/v1/simulacoes?clienteId={clienteId}`
+#### `GET /api/v1/simulacoes?clienteId={clienteId}&page={page}&size={size}`
 
-- Sem parâmetro: lista todas as simulações.
-- Com `clienteId`: filtra pelo cliente.
+- clienteId (opcional) – filtra por cliente.
+
+- page (opcional, padrão = 0) – número da página (0-based).
+
+- size (opcional, padrão = 20) – quantidade de registros por página.
 
 Exemplo de resposta (array de `SimulacaoResumoDTO`):
 
 ```json
 [
   {
-    "id": 1,
-    "clienteId": 123,
-    "produto": "CDB Caixa 2026",
-    "valorInvestido": 10000.00,
-    "valorFinal": 11200.00,
-    "prazoMeses": 12,
-    "dataSimulacao": "2025-10-31T14:00:00Z"
-  }
+    "content": [
+      {
+        "id": 1,
+        "clienteId": 123,
+        "produto": "CDB Caixa 2026",
+        "valorInvestido": 10000.00,
+        "valorFinal": 11200.00,
+        "prazoMeses": 12,
+        "dataSimulacao": "2025-10-31T14:00:00Z"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 1,
+    "totalPages": 1
+  } 
 ]
 ```
 
 #### `GET /api/v1/simulacoes/por-produto-dia`
 
-Resumo estatístico por produto e dia:
+Resumo estatístico por produto e dia, **com paginação em memória**.
 
-```json
-[
-  {
-    "produto": "CDB Caixa 2026",
-    "data": "2025-10-30",
-    "quantidadeSimulacoes": 15,
-    "mediaValorFinal": 11050.00
-  }
-]
+**Parâmetros de query:**
+
+- `page` (opcional, padrão = `0`) – página desejada (0-based)
+- `size` (opcional, padrão = `10`) – quantidade de registros por página
+
+Exemplo:
+
+```http
+GET /api/v1/simulacoes/por-produto-dia?page=0&size=10
+Authorization: Bearer <JWT>
+
+
+{
+  "content": [
+    {
+      "produto": "CDB Caixa 2026",
+      "data": "2025-10-30",
+      "quantidadeSimulacoes": 15,
+      "mediaValorFinal": 11050.00
+    },
+    {
+      "produto": "Tesouro Selic 2027",
+      "data": "2025-10-30",
+      "quantidadeSimulacoes": 8,
+      "mediaValorFinal": 10320.50
+    }
+  ],
+  "page": 0,
+  "size": 10,
+  "totalElements": 25,
+  "totalPages": 3
+}
+
 ```
 
 ---
@@ -311,19 +346,40 @@ Exemplo:
 
 Resource: `InvestimentoResource`, ROLE `USER`.
 
-#### `GET /api/v1/investimentos/{clienteId}`
+#### `GET /api/v1/investimentos/{clienteId}?page={page}&size={size}`
+
+- clienteId (obrigatório) – ID do cliente.
+
+- page (opcional, padrão = 0) – número da página (0-based).
+
+- size (opcional, padrão = 20) – quantidade de registros por página.
 
 Retorna os investimentos realizados por um cliente:
 
 ```json
 [
   {
-    "id": 1,
-    "tipo": "CDB",
-    "valor": 5000.00,
-    "rentabilidade": 0.12,
-    "data": "2025-01-15"
-  }
+    "content": [
+      {
+        "id": 1,
+        "tipo": "CDB",
+        "valor": 5000.00,
+        "rentabilidade": 0.12,
+        "data": "2025-01-15"
+      },
+      {
+        "id": 2,
+        "tipo": "Tesouro Selic",
+        "valor": 2000.00,
+        "rentabilidade": 0.10,
+        "data": "2025-02-10"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 2,
+    "totalPages": 1
+  } 
 ]
 ```
 
@@ -432,6 +488,14 @@ Na raiz do projeto:
 # sobe SQL Server, Redis e API
 docker compose up -d
 ```
+
+```bash 
+# Para derrubar containers + volumes: 
+- docker compose down -v
+
+# Derrubar tudo(vololume, containers, imagens): 
+- Docker compose down --rmi all --volumes --remove-orphans
+``` 
 
 Serviços:
 

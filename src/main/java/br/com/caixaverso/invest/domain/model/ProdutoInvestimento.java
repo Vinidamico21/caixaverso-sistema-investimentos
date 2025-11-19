@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Entity
-@Table(name = "produto_investimento")
+@Table(name = "ProdutoInvestimento", schema = "dbo")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -39,16 +39,19 @@ public class ProdutoInvestimento {
     @Column(name = "liquidez", nullable = false, length = 30)
     private String liquidez;
 
-    @Column(name = "prazo_min_meses", nullable = false)
+    // No SQL está como NULLABLE – você marcou nullable = false,
+    // isso só vai dar problema se houver registros com NULL.
+    @Column(name = "prazo_min_meses", nullable = true)
     private Integer prazoMinMeses;
 
-    @Column(name = "prazo_max_meses", nullable = false)
+    @Column(name = "prazo_max_meses", nullable = true)
     private Integer prazoMaxMeses;
 
     @Column(name = "valor_minimo", nullable = false, precision = 18, scale = 2)
     private BigDecimal valorMinimo;
 
-    @Column(name = "valor_maximo", nullable = false, precision = 18, scale = 2)
+    // No SQL é nullable, aqui ajusto também para true por segurança
+    @Column(name = "valor_maximo", nullable = true, precision = 18, scale = 2)
     private BigDecimal valorMaximo;
 
     @Column(name = "ativo", nullable = false)
