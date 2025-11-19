@@ -6,7 +6,7 @@ import lombok.*;
 import java.util.Objects;
 
 @Entity
-@Table(name = "perfil_risco_regra")
+@Table(name = "PerfilRiscoRegra")
 @Getter
 @Setter
 @NoArgsConstructor

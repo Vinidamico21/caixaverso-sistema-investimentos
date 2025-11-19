@@ -613,17 +613,27 @@ O perfil do cliente (enum `PerfilRisco`: `CONSERVADOR`, `MODERADO`, `AGRESSIVO`,
         - `EMPATE`
     - A pontuação associada é buscada em banco (`perfil_preferencia_regra`).
 
-2. **Volume Simulado / Investido**
-    - Soma os valores simulados e gera uma pontuação de acordo com faixas (por exemplo, acima de 50k recebe pontuação maior que acima de 10k).
-    - Esse componente mede **capacidade / apetite financeiro**.
+2. **Volume Investido(Total valor aplicado)**
+    - Soma os valores investidos e gera uma pontuação de acordo com faixas (por exemplo, acima de 50k recebe pontuação maior que acima de 10k).
+    - Esse componente mede **capacidade financeira do cliente**.
 
 3. **Frequência de Movimentações (Simulações + Investimentos)**
-    - Considera:
-        - quantidade de investimentos reais nos últimos meses; e
-        - quantidade de simulações recentes.
-    - Cada uma dessas frequências é convertida em pontos via tabelas:
-        - `perfil_freq_invest_regra`
-        - `perfil_freq_simulacao_regra`
+- Considera:
+    - **Frequência de Investimentos Reais**: quantidade de investimentos reais realizados nos últimos 12 meses
+    - **Frequência de Simulações**: quantidade de simulações realizadas nos últimos 12 meses
+    - **O range de 12 meses pode ser alterado de acordo com a definição do Gestor**
+- Cada uma dessas frequências é convertida em pontos via tabelas de regras:
+    - `perfil_freq_invest_regra`: tabela que mapeia a quantidade de investimentos reais para pontuação
+    - `perfil_freq_simulacao_regra`: tabela que mapeia a quantidade de simulações para pontuação
+- **Cálculo**:
+    - Busca todos os investimentos reais do cliente nos últimos 12 meses via `investimentoPort.findByClienteIdAndPeriodo()`
+    - Filtra todas as simulações do cliente nos últimos 12 meses via `simulacaoPort.listar()` com filtro por data
+    - Obtém a pontuação para quantidade de investimentos via `freqInvestRegraPort.buscarPontuacao(qtdInvestimentos)`
+    - Obtém a pontuação para quantidade de simulações via `freqSimRegraPort.buscarPontuacao(qtdSimulacoes)`
+    - **Pontuação Total de Frequência** = Soma das pontuações de investimentos reais + simulações
+
+
+
 
 O **score final** é a soma:
 

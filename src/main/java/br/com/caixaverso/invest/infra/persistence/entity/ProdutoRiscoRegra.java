@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 import java.util.Objects;
 
 @Entity
-@Table(name = "produto_risco_regra")
+@Table(name = "ProdutoRiscoRegra")
 @Getter
 @Setter
 @NoArgsConstructor

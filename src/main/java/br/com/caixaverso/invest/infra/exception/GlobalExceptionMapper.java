@@ -12,6 +12,8 @@ import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
 import org.jboss.logging.Logger;
 
+import java.sql.SQLException;
+
 @Provider
 public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
 
@@ -25,7 +27,7 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
 
         String path = path();
 
-        // 1) Exceções de domínio (Business, NotFound, Unauthorized, etc.)
+        // 1) Exceções de domínio customizadas
         if (ex instanceof ApiException apiEx) {
             LOG.warnf("ApiException tratada | status=%d | error=%s | path=%s | msg=%s",
                     apiEx.getStatus().getStatusCode(),
@@ -42,7 +44,14 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
             return Response.status(apiEx.getStatus()).entity(body).build();
         }
 
-        // 2) Método HTTP errado
+        // 2) Exceções SQL - tratamento genérico
+        if (ex instanceof SQLException ||
+                (ex.getCause() instanceof SQLException)) {
+
+            return handleSqlException(ex, path);
+        }
+
+        // 3) Método HTTP errado
         if (ex instanceof NotAllowedException nae) {
             LOG.warnf("NotAllowedException tratada | path=%s | msg=%s",
                     path, nae.getMessage());
@@ -56,7 +65,7 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
             return Response.status(Response.Status.METHOD_NOT_ALLOWED).entity(body).build();
         }
 
-        // 3) WebApplicationException genérica (ex.: JSON parse -> HTTP 400 Bad Request)
+        // 4) WebApplicationException genérica
         if (ex instanceof WebApplicationException webEx) {
             int status = webEx.getResponse() != null
                     ? webEx.getResponse().getStatus()
@@ -76,7 +85,7 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
             }
         }
 
-        // 4) Erros de parsing / corpo / parâmetros inválidos
+        // 5) Erros de parsing / corpo / parâmetros inválidos
         if (ex instanceof BadRequestException || ex instanceof ProcessingException) {
             LOG.warnf("%s tratada como BAD_REQUEST | path=%s | msg=%s",
                     ex.getClass().getSimpleName(), path, ex.getMessage());
@@ -90,9 +99,8 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
             return Response.status(Response.Status.BAD_REQUEST).entity(body).build();
         }
 
-        // 5) Bean Validation (@Valid, @NotNull, @Positive, etc.)
+        // 6) Bean Validation
         if (ex instanceof ConstraintViolationException cve) {
-
             String msg = cve.getConstraintViolations().stream()
                     .map(v -> v.getPropertyPath() + ": " + v.getMessage())
                     .reduce((a, b) -> a + "; " + b)
@@ -110,7 +118,7 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
             return Response.status(Response.Status.BAD_REQUEST).entity(body).build();
         }
 
-        // 6) 500 padrão
+        // 7) 500 padrão
         LOG.errorf(ex, "Erro inesperado nao tratado | path=%s | exception=%s",
                 path, ex.getClass().getSimpleName());
 
@@ -118,6 +126,42 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
                 Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(),
                 "Internal Error",
                 "Erro inesperado ao processar a requisição.",
+                path
+        );
+        return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(body).build();
+    }
+
+    private Response handleSqlException(Throwable ex, String path) {
+        LOG.errorf(ex, "SQLException | path=%s | exception=%s | msg=%s",
+                path, ex.getClass().getSimpleName(), ex.getMessage());
+
+        String errorMessage = "Erro de banco de dados";
+
+        // Extrair a causa SQL real
+        SQLException sqlEx = null;
+        if (ex instanceof SQLException) {
+            sqlEx = (SQLException) ex;
+        } else if (ex.getCause() instanceof SQLException) {
+            sqlEx = (SQLException) ex.getCause();
+        }
+
+        if (sqlEx != null) {
+            // Mensagem mais específica baseada no erro SQL
+            if (sqlEx.getMessage().contains("Invalid object name")) {
+                errorMessage = "Tabela ou objeto não encontrado no banco de dados";
+            } else if (sqlEx.getMessage().contains("violat") || sqlEx.getMessage().contains("constraint")) {
+                errorMessage = "Violação de regra do banco de dados";
+            } else {
+                errorMessage = String.format("Erro SQL: %s", sqlEx.getMessage());
+            }
+        }
+
+        SqlException sqlException = new SqlException(errorMessage);
+
+        ApiErrorDTO body = new ApiErrorDTO(
+                Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(),
+                "DATABASE_ERROR",
+                errorMessage,
                 path
         );
         return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(body).build();

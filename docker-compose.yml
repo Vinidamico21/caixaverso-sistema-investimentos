@@ -12,7 +12,6 @@ services:
       - sqlserver_data:/var/opt/mssql
     networks:
       - investimentos-net
-
     entrypoint:
       - /bin/bash
       - -c
@@ -75,6 +74,7 @@ services:
       - JWT_EXPIRATION_SECONDS=3600
       - QUARKUS_HTTP_HOST=0.0.0.0
       - QUARKUS_REDIS_HOSTS=redis://redis:6379
+      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
     depends_on:
       sqlserver:
         condition: service_healthy

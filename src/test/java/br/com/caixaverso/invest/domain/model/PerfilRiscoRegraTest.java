@@ -148,6 +148,6 @@ class PerfilRiscoRegraTest {
     void testTableAnnotation() {
         jakarta.persistence.Table table = PerfilRiscoRegra.class.getAnnotation(jakarta.persistence.Table.class);
         assertNotNull(table);
-        assertEquals("perfil_risco_regra", table.name());
+        assertEquals("PerfilRiscoRegra", table.name());
     }
 }

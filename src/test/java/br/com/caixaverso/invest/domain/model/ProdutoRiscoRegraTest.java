@@ -158,7 +158,7 @@ class ProdutoRiscoRegraTest {
     void testTableAnnotation() {
         jakarta.persistence.Table table = ProdutoRiscoRegra.class.getAnnotation(jakarta.persistence.Table.class);
         assertNotNull(table);
-        assertEquals("produto_risco_regra", table.name());
+        assertEquals("ProdutoRiscoRegra", table.name());
     }
 
     @Test

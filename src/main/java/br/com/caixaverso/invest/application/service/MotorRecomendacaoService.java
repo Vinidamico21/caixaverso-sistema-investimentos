@@ -33,6 +33,7 @@ public class MotorRecomendacaoService
 
     private static final Logger LOG = Logger.getLogger(MotorRecomendacaoService.class);
     private static final BigDecimal ZERO = BigDecimal.ZERO;
+    private static final Integer RANGE_QTD_MESES_SCORE = 12;
 
     @Inject PerfilRiscoRegraPort perfilRegraPort;
     @Inject PreferenciaRegraPort preferenciaRegraPort;
@@ -56,7 +57,7 @@ public class MotorRecomendacaoService
                 .toList();
 
         int scorePreferencia = calcularPreferencias(sims);
-        int scoreVolume = calcularVolume(sims);
+        int scoreVolume = calcularVolumeReal(clienteId);
         int scoreFrequencia = calcularPontuacaoFrequencia(clienteId);
 
         int scoreFinal = scorePreferencia + scoreVolume + scoreFrequencia;
@@ -192,10 +193,12 @@ public class MotorRecomendacaoService
         return preferenciaRegraPort.buscarPontuacao(pref.name());
     }
 
-    private int calcularVolume(List<SimulacaoInvestimento> sims) {
-        BigDecimal volume = sims.stream()
-                .map(SimulacaoInvestimento::getValorAplicado)
-                .reduce(ZERO, BigDecimal::add);
+    private int calcularVolumeReal(Long clienteId) {
+        List<Investimento> investimentos = investimentoPort.findByClienteId(clienteId);
+        BigDecimal volume = investimentos.stream()
+                .map(Investimento::getValorAplicado)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
 
         if (volume.compareTo(new BigDecimal("50000")) > 0) return 30;
         if (volume.compareTo(new BigDecimal("25000")) > 0) return 22;
@@ -205,11 +208,13 @@ public class MotorRecomendacaoService
     }
 
     private int calcularPontuacaoFrequencia(Long clienteId) {
-        LocalDate limite = LocalDate.now().minusMonths(6);
+        LocalDate limite = LocalDate.now().minusMonths(RANGE_QTD_MESES_SCORE);
 
+        //Frequencia de investimentos
         List<Investimento> reais =
                 investimentoPort.findByClienteIdAndPeriodo(clienteId, limite);
 
+        //Frequencia de simulacoes
         List<SimulacaoInvestimento> sims6m =
                 simulacaoPort.listar().stream()
                         .filter(s -> s.getCliente().getId().equals(clienteId))
