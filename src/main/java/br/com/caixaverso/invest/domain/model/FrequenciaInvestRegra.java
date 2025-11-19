@@ -1,12 +1,16 @@
 package br.com.caixaverso.invest.domain.model;
 
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 @Entity
 @Table(name = "perfil_freq_invest_regra")
 @Getter @Setter
+@EqualsAndHashCode
+@ToString
 public class FrequenciaInvestRegra {
 
     @Id

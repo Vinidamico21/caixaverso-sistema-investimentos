@@ -1,7 +1,7 @@
 package br.com.caixaverso.invest.infra.adapter;
 
 import br.com.caixaverso.invest.domain.model.FrequenciaSimulacaoRegra;
-import br.com.caixaverso.invest.domain.port.FrequenciaSimulacaoRegraPort;
+import br.com.caixaverso.invest.application.port.out.FrequenciaSimulacaoRegraPort;
 import br.com.caixaverso.invest.infra.repository.FrequenciaSimulacaoRegraRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -14,7 +14,7 @@ public class FrequenciaSimulacaoRegraAdapter implements FrequenciaSimulacaoRegra
 
     @Override
     public int buscarPontuacao(int quantidade) {
-        return repo.findAll().stream()
+        return repo.listarTodas().stream()
                 .filter(r -> quantidade >= r.getQuantidadeMin() &&
                         (r.getQuantidadeMax() == null || quantidade <= r.getQuantidadeMax()))
                 .map(FrequenciaSimulacaoRegra::getPontuacao)
@@ -22,4 +22,3 @@ public class FrequenciaSimulacaoRegraAdapter implements FrequenciaSimulacaoRegra
                 .orElse(0);
     }
 }
-

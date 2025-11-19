@@ -2,8 +2,12 @@ package br.com.caixaverso.invest.application.service;
 
 import br.com.caixaverso.invest.application.dto.*;
 import br.com.caixaverso.invest.domain.model.*;
-import br.com.caixaverso.invest.domain.port.*;
-import br.com.caixaverso.invest.infra.exception.BusinessException;
+import br.com.caixaverso.invest.application.port.in.AgruparSimulacoesPorProdutoDiaUseCase;
+import br.com.caixaverso.invest.application.port.in.ListarSimulacoesUseCase;
+import br.com.caixaverso.invest.application.port.in.SimularInvestimentoUseCase;
+import br.com.caixaverso.invest.application.port.out.ClientePort;
+import br.com.caixaverso.invest.application.port.out.ProdutoInvestimentoPort;
+import br.com.caixaverso.invest.application.port.out.SimulacaoInvestimentoPort;
 import br.com.caixaverso.invest.infra.exception.NotFoundException;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -15,10 +19,17 @@ import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import org.jboss.logging.Logger;
+
 import static br.com.caixaverso.invest.infra.util.RiscoMapper.mapearRiscoHumano;
 
 @ApplicationScoped
-public class SimulacaoService {
+public class SimulacaoService implements
+        SimularInvestimentoUseCase,
+        ListarSimulacoesUseCase,
+        AgruparSimulacoesPorProdutoDiaUseCase {
+
+    private static final Logger LOG = Logger.getLogger(SimulacaoService.class);
 
     @Inject
     ClientePort clientePort;
@@ -33,24 +44,42 @@ public class SimulacaoService {
     @Transactional
     public SimularInvestimentoResponse executarSimulacao(SimularInvestimentoRequest request) {
 
+        LOG.infof("Iniciando simulacao | clienteId=%d | tipoProduto=%s | valor=%s | prazoMeses=%d",
+                request.getClienteId(), request.getTipoProduto(), request.getValor(), request.getPrazoMeses());
+
         Cliente cliente = clientePort.findById(request.getClienteId())
-                .orElseThrow(() -> new NotFoundException("Cliente não encontrado."));
+                .orElseThrow(() -> {
+                    LOG.warnf("Cliente nao encontrado para simulacao | clienteId=%d", request.getClienteId());
+                    return new NotFoundException("Cliente não encontrado.");
+                });
+
+        LOG.debugf("Cliente encontrado para simulacao | clienteId=%d", cliente.getId());
 
         List<ProdutoInvestimento> produtos = produtoPort.findByTipo(request.getTipoProduto());
 
         if (produtos.isEmpty()) {
+            LOG.warnf("Nenhum produto encontrado para o tipo solicitado | tipoProduto=%s", request.getTipoProduto());
             throw new NotFoundException("Nenhum produto encontrado para o tipo solicitado");
         }
+
+        LOG.infof("Produtos encontrados para simulacao=%d | tipoProduto=%s",
+                produtos.size(), request.getTipoProduto());
 
         ProdutoInvestimento melhorProduto = produtos.stream()
                 .max(Comparator.comparing(ProdutoInvestimento::getTaxaAnual))
                 .orElseThrow();
+
+        LOG.infof("Melhor produto selecionado | produtoId=%d | nome=%s | taxaAnual=%s",
+                melhorProduto.getId(), melhorProduto.getNome(), melhorProduto.getTaxaAnual());
 
         BigDecimal valorFinal = calcularJurosCompostos(
                 request.getValor(),
                 melhorProduto.getTaxaAnual(),
                 request.getPrazoMeses()
         );
+
+        LOG.debugf("Resultado da simulacao | valorInicial=%s | taxaAnual=%s | prazoMeses=%d | valorFinal=%s",
+                request.getValor(), melhorProduto.getTaxaAnual(), request.getPrazoMeses(), valorFinal);
 
         SimulacaoInvestimento sim = SimulacaoInvestimento.builder()
                 .cliente(cliente)
@@ -62,13 +91,29 @@ public class SimulacaoService {
                 .perfilRiscoCalculado(melhorProduto.getRisco())
                 .build();
 
+        LOG.infof("Persistindo simulacao de investimento | clienteId=%d | produtoId=%d | valorAplicado=%s | valorFinal=%s",
+                cliente.getId(), melhorProduto.getId(), sim.getValorAplicado(), sim.getValorFinal());
+
         simulacaoPort.salvar(sim);
 
-        return montarRespostaSimulacao(melhorProduto, valorFinal, request.getPrazoMeses());
+        LOG.debug("Simulacao de investimento salva com sucesso.");
+
+        SimularInvestimentoResponse response = montarRespostaSimulacao(melhorProduto, valorFinal, request.getPrazoMeses());
+
+        LOG.infof("Simulacao concluida | clienteId=%d | produto=%s | valorFinal=%s | prazoMeses=%d",
+                request.getClienteId(), melhorProduto.getNome(), valorFinal, request.getPrazoMeses());
+
+        return response;
     }
 
     private SimularInvestimentoResponse montarRespostaSimulacao(
             ProdutoInvestimento produto, BigDecimal valorFinal, int prazoMeses) {
+
+        LOG.debugf(
+                "Montando resposta de simulacao | produtoId=%d | valorFinal=%s | prazoMeses=%d",
+                produto.getId().longValue(),
+                prazoMeses
+        );
 
         ProdutoValidadoDTO produtoDto = ProdutoValidadoDTO.builder()
                 .id(produto.getId())
@@ -84,33 +129,54 @@ public class SimulacaoService {
                 .prazoMeses(prazoMeses)
                 .build();
 
-        return SimularInvestimentoResponse.builder()
+        SimularInvestimentoResponse response = SimularInvestimentoResponse.builder()
                 .produtoValidado(produtoDto)
                 .resultadoSimulacao(resultadoDTO)
                 .dataSimulacao(OffsetDateTime.now(ZoneOffset.UTC))
                 .build();
+
+        LOG.debug("Resposta de simulacao montada com sucesso.");
+
+        return response;
     }
 
     // LISTAR SIMULAÇÕES
     public List<SimulacaoResumoDTO> listarSimulacoes(Long clienteId) {
+
+        LOG.infof("Listando simulacoes | filtroClienteId=%s", clienteId);
+
         List<SimulacaoInvestimento> sims =
                 clienteId == null ? simulacaoPort.listar() : simulacaoPort.listarPorClienteId(clienteId);
 
-        return sims.stream().map(sim -> SimulacaoResumoDTO.builder()
-                .id(sim.getId())
-                .clienteId(sim.getCliente().getId())
-                .produto(sim.getProduto().getNome())
-                .valorInvestido(sim.getValorAplicado())
-                .valorFinal(sim.getValorFinal())
-                .prazoMeses(sim.getPrazoMeses())
-                .dataSimulacao(sim.getDataSimulacao().atOffset(ZoneOffset.UTC))
-                .build()).toList();
+        LOG.infof("Total de simulacoes encontradas=%d", sims.size());
+
+        return sims.stream()
+                .peek(sim -> LOG.debugf("Simulacao encontrada | id=%d | clienteId=%d | produto=%s | valorAplicado=%s | valorFinal=%s",
+                        sim.getId(),
+                        sim.getCliente().getId(),
+                        sim.getProduto().getNome(),
+                        sim.getValorAplicado(),
+                        sim.getValorFinal()))
+                .map(sim -> SimulacaoResumoDTO.builder()
+                        .id(sim.getId())
+                        .clienteId(sim.getCliente().getId())
+                        .produto(sim.getProduto().getNome())
+                        .valorInvestido(sim.getValorAplicado())
+                        .valorFinal(sim.getValorFinal())
+                        .prazoMeses(sim.getPrazoMeses())
+                        .dataSimulacao(sim.getDataSimulacao().atOffset(ZoneOffset.UTC))
+                        .build())
+                .toList();
     }
 
     // AGRUPAMENTO por PRODUTO/DIA
     public List<SimulacaoPorProdutoDiaDTO> agrupamentoPorProdutoDia() {
 
+        LOG.info("Iniciando agrupamento de simulacoes por produto e dia.");
+
         List<SimulacaoInvestimento> simulacoes = simulacaoPort.listar();
+
+        LOG.infof("Total de simulacoes carregadas para agrupamento=%d", simulacoes.size());
 
         Map<String, Map<LocalDate, List<SimulacaoInvestimento>>> agrupado =
                 simulacoes.stream().collect(Collectors.groupingBy(
@@ -123,6 +189,8 @@ public class SimulacaoService {
         for (var entryProduto : agrupado.entrySet()) {
             String produto = entryProduto.getKey();
 
+            LOG.debugf("Processando agrupamento para produto=%s", produto);
+
             for (var entryDia : entryProduto.getValue().entrySet()) {
                 LocalDate data = entryDia.getKey();
                 List<SimulacaoInvestimento> simsDoDia = entryDia.getValue();
@@ -131,6 +199,9 @@ public class SimulacaoService {
                         .map(SimulacaoInvestimento::getValorFinal)
                         .reduce(BigDecimal.ZERO, BigDecimal::add)
                         .divide(BigDecimal.valueOf(simsDoDia.size()), 2, RoundingMode.HALF_UP);
+
+                LOG.debugf("Agrupamento gerado | produto=%s | data=%s | qtdSimulacoes=%d | mediaValorFinal=%s",
+                        produto, data, simsDoDia.size(), media);
 
                 resposta.add(SimulacaoPorProdutoDiaDTO.builder()
                         .produto(produto)
@@ -141,16 +212,25 @@ public class SimulacaoService {
             }
         }
 
+        LOG.infof("Total de registros de agrupamento por produto/dia gerados=%d", resposta.size());
+
         return resposta;
     }
 
     // CÁLCULO
     private BigDecimal calcularJurosCompostos(BigDecimal valor, BigDecimal taxaAnual, int meses) {
 
+        LOG.debugf("Calculando juros compostos | valor=%s | taxaAnual=%s | meses=%d",
+                valor, taxaAnual, meses);
+
         BigDecimal taxaMensal = taxaAnual.divide(BigDecimal.valueOf(12), 10, RoundingMode.HALF_UP);
 
-        return valor
+        BigDecimal resultado = valor
                 .multiply(BigDecimal.ONE.add(taxaMensal).pow(meses))
                 .setScale(2, RoundingMode.HALF_UP);
+
+        LOG.debugf("Juros compostos calculados | resultado=%s", resultado);
+
+        return resultado;
     }
 }

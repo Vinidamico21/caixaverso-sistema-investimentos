@@ -1,7 +1,7 @@
 package br.com.caixaverso.invest.application.service;
 
 import br.com.caixaverso.invest.domain.model.ProdutoInvestimento;
-import br.com.caixaverso.invest.domain.port.ProdutoInvestimentoPort;
+import br.com.caixaverso.invest.application.port.out.ProdutoInvestimentoPort;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

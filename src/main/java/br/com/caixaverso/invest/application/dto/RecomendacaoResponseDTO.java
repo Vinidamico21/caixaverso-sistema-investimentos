@@ -12,7 +12,6 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class RecomendacaoResponseDTO {
-
     private Long clienteId;
     private String perfilRisco;
     private String scoreRisco;

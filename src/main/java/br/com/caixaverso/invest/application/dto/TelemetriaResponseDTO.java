@@ -9,8 +9,17 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode
 public class TelemetriaResponseDTO {
 
     private List<TelemetriaServicoDTO> servicos;
     private TelemetriaPeriodoDTO periodo;
+
+    @Override
+    public String toString() {
+        return "TelemetriaResponseDTO{" +
+                "servicos=" + servicos +
+                ", periodo=" + periodo +
+                '}';
+    }
 }

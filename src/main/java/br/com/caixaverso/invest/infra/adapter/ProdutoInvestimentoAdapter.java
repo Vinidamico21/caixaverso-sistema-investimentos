@@ -1,7 +1,7 @@
 package br.com.caixaverso.invest.infra.adapter;
 
 import br.com.caixaverso.invest.domain.model.ProdutoInvestimento;
-import br.com.caixaverso.invest.domain.port.ProdutoInvestimentoPort;
+import br.com.caixaverso.invest.application.port.out.ProdutoInvestimentoPort;
 import br.com.caixaverso.invest.infra.repository.ProdutoInvestimentoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -16,11 +16,11 @@ public class ProdutoInvestimentoAdapter implements ProdutoInvestimentoPort {
 
     @Override
     public List<ProdutoInvestimento> findAll() {
-        return produtoRepository.listAll();
+        return produtoRepository.listarTodos();
     }
 
     @Override
     public List<ProdutoInvestimento> findByTipo(String tipo) {
-        return produtoRepository.list("tipo", tipo);
+        return produtoRepository.listarPorTipo(tipo);
     }
 }

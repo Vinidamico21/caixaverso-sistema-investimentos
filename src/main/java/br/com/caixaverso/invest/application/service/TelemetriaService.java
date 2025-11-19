@@ -4,14 +4,15 @@ import br.com.caixaverso.invest.application.dto.TelemetriaPeriodoDTO;
 import br.com.caixaverso.invest.application.dto.TelemetriaResponseDTO;
 import br.com.caixaverso.invest.application.dto.TelemetriaServicoDTO;
 import br.com.caixaverso.invest.domain.model.TelemetriaRegistro;
-import br.com.caixaverso.invest.domain.port.TelemetriaPort;
+import br.com.caixaverso.invest.application.port.in.GerarRelatorioTelemetriaUseCase;
+import br.com.caixaverso.invest.application.port.in.RegistrarTelemetriaUseCase;
+import br.com.caixaverso.invest.application.port.out.TelemetriaPort;
 import br.com.caixaverso.invest.infra.exception.BusinessException;
 import br.com.caixaverso.invest.infra.repository.TelemetriaRegistroRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
-import org.jboss.logging.MDC;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -19,7 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
-public class TelemetriaService {
+public class TelemetriaService implements
+        GerarRelatorioTelemetriaUseCase,
+        RegistrarTelemetriaUseCase {
 
     private static final Logger LOG = Logger.getLogger(TelemetriaService.class);
 
@@ -28,10 +31,6 @@ public class TelemetriaService {
 
     @Inject
     TelemetriaRegistroRepository telemetriaRepository;
-
-    private String rid() {
-        return (String) MDC.get("requestId");
-    }
 
     // =============================================================
     //                    REGISTRO DE TELEMETRIA
@@ -47,8 +46,8 @@ public class TelemetriaService {
     ) {
         validarRegistro(endpoint, metodoHttp, statusHttp, duracaoMs);
 
-        LOG.debugf("[reqId=%s] Registrando telemetria | endpoint=%s | metodo=%s | status=%d | duracaoMs=%d",
-                rid(), endpoint, metodoHttp, statusHttp, duracaoMs);
+        LOG.debugf("Registrando telemetria | endpoint=%s | metodo=%s | status=%d | duracaoMs=%d",
+                endpoint, metodoHttp, statusHttp, duracaoMs);
 
         TelemetriaRegistro reg = TelemetriaRegistro.builder()
                 .endpoint(endpoint)
@@ -82,7 +81,7 @@ public class TelemetriaService {
     @Transactional
     public TelemetriaResponseDTO gerarRelatorio() {
 
-        LOG.infof("[reqId=%s] Gerando relatório de telemetria", rid());
+        LOG.infof("Gerando relatório de telemetria");
 
         List<Object[]> results = telemetriaRepository.getEntityManager()
                 .createQuery(
@@ -147,8 +146,8 @@ public class TelemetriaService {
                 .periodo(periodo)
                 .build();
 
-        LOG.infof("[reqId=%s] Relatório de telemetria gerado | servicos=%d | periodo=%s até %s",
-                rid(), servicos.size(), inicio, fim);
+        LOG.infof("Relatório de telemetria gerado | servicos=%d | periodo=%s até %s",
+                servicos.size(), inicio, fim);
 
         return response;
     }

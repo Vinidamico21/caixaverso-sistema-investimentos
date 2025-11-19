@@ -9,6 +9,8 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode
+@ToString
 public class ResultadoSimulacaoDTO {
 
     private BigDecimal valorFinal;

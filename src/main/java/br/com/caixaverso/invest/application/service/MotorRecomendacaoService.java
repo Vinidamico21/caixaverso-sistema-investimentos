@@ -3,14 +3,15 @@ package br.com.caixaverso.invest.application.service;
 import br.com.caixaverso.invest.application.dto.PerfilRiscoResponseDTO;
 import br.com.caixaverso.invest.application.dto.ProdutoRecomendadoDTO;
 import br.com.caixaverso.invest.application.dto.RecomendacaoResponseDTO;
+import br.com.caixaverso.invest.application.port.out.*;
 import br.com.caixaverso.invest.domain.model.*;
-import br.com.caixaverso.invest.domain.port.*;
+import br.com.caixaverso.invest.application.port.in.CalcularPerfilRiscoUseCase;
+import br.com.caixaverso.invest.application.port.in.RecomendarProdutosUseCase;
 import br.com.caixaverso.invest.infra.exception.BusinessException;
 import br.com.caixaverso.invest.infra.exception.NotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
-import org.jboss.logging.MDC;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -21,26 +22,30 @@ import java.util.List;
 import static br.com.caixaverso.invest.domain.constants.PerfilConstantes.*;
 
 @ApplicationScoped
-public class MotorRecomendacaoService {
+public class MotorRecomendacaoService
+        implements CalcularPerfilRiscoUseCase, RecomendarProdutosUseCase {
 
     private static final Logger LOG = Logger.getLogger(MotorRecomendacaoService.class);
 
     private static final BigDecimal ZERO = BigDecimal.ZERO;
     private static final int LIMITE_PADRAO = 5;
 
-    @Inject PerfilRiscoRegraPort perfilRegraPort;
-    @Inject PreferenciaRegraPort preferenciaRegraPort;
-    @Inject FrequenciaInvestRegraPort freqInvestRegraPort;
-    @Inject FrequenciaSimulacaoRegraPort freqSimRegraPort;
-    @Inject ProdutoRiscoRegraPort riscoRegraPort;
+    @Inject
+    PerfilRiscoRegraPort perfilRegraPort;
+    @Inject
+    PreferenciaRegraPort preferenciaRegraPort;
+    @Inject
+    FrequenciaInvestRegraPort freqInvestRegraPort;
+    @Inject
+    FrequenciaSimulacaoRegraPort freqSimRegraPort;
+    @Inject
+    ProdutoRiscoRegraPort riscoRegraPort;
 
     @Inject SimulacaoInvestimentoPort simulacaoPort;
-    @Inject InvestimentoPort investimentoPort;
-    @Inject ProdutoInvestimentoPort produtoPort;
-
-    private String rid() {
-        return (String) MDC.get("requestId");
-    }
+    @Inject
+    InvestimentoPort investimentoPort;
+    @Inject
+    ProdutoInvestimentoPort produtoPort;
 
     // =============================================================
     //                     CÁLCULO DO PERFIL
@@ -49,17 +54,11 @@ public class MotorRecomendacaoService {
 
         validarClienteId(clienteId);
 
-        LOG.infof("[reqId=%s] Iniciando calculo de perfil | clienteId=%d", rid(), clienteId);
+        LOG.infof("Iniciando calculo de perfil | clienteId=%d", clienteId);
 
         List<SimulacaoInvestimento> sims = simulacaoPort.listar().stream()
                 .filter(s -> s.getCliente().getId().equals(clienteId))
                 .toList();
-
-        if (sims.isEmpty()) {
-            LOG.warnf("[reqId=%s] Nenhuma simulacao encontrada | clienteId=%d", rid(), clienteId);
-            // 404 tratado pelo GlobalExceptionMapper
-            throw new NotFoundException("Nenhuma simulação encontrada para o clienteId=" + clienteId);
-        }
 
         int scorePreferencia = calcularPreferencias(sims);
         int scoreVolume = calcularVolume(sims);
@@ -68,13 +67,13 @@ public class MotorRecomendacaoService {
         int scoreFinal = scorePreferencia + scoreVolume + scoreFrequencia;
 
         LOG.infof(
-                "[reqId=%s] Score final=%d (preferencia=%d, volume=%d, frequencia=%d)",
-                rid(), scoreFinal, scorePreferencia, scoreVolume, scoreFrequencia
+                "Score final=%d (preferencia=%d, volume=%d, frequencia=%d)",
+                scoreFinal, scorePreferencia, scoreVolume, scoreFrequencia
         );
 
         String perfilNome = classificarPerfilViaBanco(scoreFinal);
 
-        LOG.infof("[reqId=%s] Perfil classificado=%s", rid(), perfilNome);
+        LOG.infof("Perfil classificado=%s", perfilNome);
 
         return PerfilRiscoResponseDTO.builder()
                 .clienteId(clienteId)
@@ -89,7 +88,7 @@ public class MotorRecomendacaoService {
     // =============================================================
     public RecomendacaoResponseDTO recomendarParaCliente(Long clienteId) {
 
-        LOG.infof("[reqId=%s] Iniciando recomendacao | clienteId=%d", rid(), clienteId);
+        LOG.infof("Iniciando recomendacao | clienteId=%d", clienteId);
 
         try {
             PerfilRiscoResponseDTO perfil = calcularPerfil(clienteId);
@@ -97,13 +96,13 @@ public class MotorRecomendacaoService {
             String perfilUpper = perfil.getPerfil().toUpperCase();
             List<ProdutoInvestimento> produtos = produtoPort.findAll();
 
-            LOG.infof("[reqId=%s] Produtos carregados=%d | perfil=%s",
-                    rid(), produtos.size(), perfilUpper);
+            LOG.infof("Produtos carregados=%d | perfil=%s",
+                    produtos.size(), perfilUpper);
 
             List<ProdutoRecomendadoDTO> recomendados =
                     calcularRecomendacoesPorPerfil(perfilUpper, produtos);
 
-            LOG.infof("[reqId=%s] Total recomendados=%d", rid(), recomendados.size());
+            LOG.infof("Total recomendados=%d", recomendados.size());
 
             return RecomendacaoResponseDTO.builder()
                     .clienteId(clienteId)
@@ -115,7 +114,7 @@ public class MotorRecomendacaoService {
         } catch (NotFoundException e) {
             // aqui a regra de negócio é diferente: não quebra o endpoint,
             // apenas devolve perfil desconhecido e lista vazia
-            LOG.warnf("[reqId=%s] Perfil nao encontrado para recomendacao | clienteId=%d", rid(), clienteId);
+            LOG.warnf("Perfil nao encontrado para recomendacao | clienteId=%d", clienteId);
             return RecomendacaoResponseDTO.builder()
                     .clienteId(clienteId)
                     .perfilRisco(PERFIL_DESCONHECIDO)
@@ -126,7 +125,7 @@ public class MotorRecomendacaoService {
 
     public List<ProdutoRecomendadoDTO> recomendarPorPerfil(String perfilTexto) {
         String perfilUpper = perfilTexto == null ? PERFIL_CONSERVADOR : perfilTexto.trim().toUpperCase();
-        LOG.infof("[reqId=%s] Recomendacao direta por perfil=%s", rid(), perfilUpper);
+        LOG.infof("Recomendacao direta por perfil=%s", perfilUpper);
         return calcularRecomendacoesPorPerfil(perfilUpper, produtoPort.findAll());
     }
 
@@ -137,21 +136,20 @@ public class MotorRecomendacaoService {
             String perfilUpper,
             List<ProdutoInvestimento> produtos) {
 
-        LOG.infof("[reqId=%s] Iniciando pipeline de recomendação | perfil=%s | totalProdutos=%d",
-                rid(), perfilUpper, produtos.size());
+        LOG.infof("Iniciando pipeline de recomendação | perfil=%s | totalProdutos=%d",
+                perfilUpper, produtos.size());
 
         return produtos.stream()
 
-                .peek(p -> LOG.debugf("[reqId=%s] Produto | id=%d | nome=%s | taxa=%s",
-                        rid(), p.getId(), p.getNome(), p.getTaxaAnual()))
+                .peek(p -> LOG.debugf("Produto | id=%d | nome=%s | taxa=%s",
+                        p.getId(), p.getNome(), p.getTaxaAnual()))
 
                 .filter(this::produtoAtivo)
 
                 .map(p -> {
                     String risco = riscoRegraPort.classificar(p.getTaxaAnual());
                     p.setRisco(risco);
-                    LOG.debugf("[reqId=%s] Risco | %s -> %s",
-                            rid(), p.getNome(), risco);
+                    LOG.debugf("Risco | %s -> %s", p.getNome(), risco);
                     return p;
                 })
 
@@ -159,16 +157,15 @@ public class MotorRecomendacaoService {
 
                 .map(p -> {
                     BigDecimal score = calcularScoreProduto(p, perfilUpper);
-                    LOG.debugf("[reqId=%s] Score | %s -> %s",
-                            rid(), p.getNome(), score);
+                    LOG.debugf("Score | %s -> %s", p.getNome(), score);
                     return new ProdutoComScore(p, score);
                 })
 
                 .sorted(Comparator.comparing(ProdutoComScore::score).reversed())
                 .limit(LIMITE_PADRAO)
 
-                .peek(pcs -> LOG.infof("[reqId=%s] Selecionado | %s | score=%s",
-                        rid(), pcs.produto().getNome(), pcs.score()))
+                .peek(pcs -> LOG.infof("Selecionado | %s | score=%s",
+                        pcs.produto().getNome(), pcs.score()))
 
                 .map(this::paraDto)
                 .toList();
@@ -213,7 +210,7 @@ public class MotorRecomendacaoService {
                         prefRent < prefLiq ? PREF_LIQUIDEZ :
                                 PREF_EMPATE;
 
-        return preferenciaRegraPort.buscarPontuacao(preferencia);
+          return preferenciaRegraPort.buscarPontuacao(preferencia);
     }
 
     private int calcularVolume(List<SimulacaoInvestimento> simulacoes) {

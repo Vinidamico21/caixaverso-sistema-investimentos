@@ -3,18 +3,6 @@
 ------------------------------------------------------------
 
 ------------------------------------------------------------
--- Tabela: PerfilRisco
-------------------------------------------------------------
-CREATE TABLE dbo.PerfilRisco (
-    id          INT IDENTITY(1,1) NOT NULL,
-    codigo      VARCHAR(20)       NOT NULL,
-    nome        VARCHAR(100)      NOT NULL,
-    descricao   VARCHAR(255)      NULL,
-    CONSTRAINT PK_PerfilRisco PRIMARY KEY (id),
-    CONSTRAINT UQ_PerfilRisco_Codigo UNIQUE (codigo)
-);
-
-------------------------------------------------------------
 -- Tabela: Cliente
 ------------------------------------------------------------
 CREATE TABLE dbo.Cliente (
@@ -129,34 +117,6 @@ CREATE TABLE dbo.TelemetriaRegistro (
 
 CREATE INDEX IX_Telemetria_Endpoint_Data
     ON dbo.TelemetriaRegistro (endpoint, data_registro);
-
-
-------------------------------------------------------------
--- Tabela: ParametrosRisco
--- (REMOVIDOS valor_num e valor_texto)
-------------------------------------------------------------
-CREATE TABLE dbo.ParametrosRisco (
-    id           INT IDENTITY(1,1) NOT NULL,
-    nome         VARCHAR(100)      NOT NULL,
-    descricao    VARCHAR(255)      NULL,
-
-    CONSTRAINT PK_ParametrosRisco PRIMARY KEY (id)
-);
-
-
-------------------------------------------------------------
--- Tabela: PesosRecomendacao
-------------------------------------------------------------
-CREATE TABLE dbo.PesosRecomendacao (
-    id             INT IDENTITY(1,1) NOT NULL,
-    perfil_risco   VARCHAR(20)       NOT NULL,
-    tipo_produto   VARCHAR(30)       NOT NULL,
-    peso           DECIMAL(7,4)      NOT NULL,
-
-    CONSTRAINT PK_PesosRecomendacao PRIMARY KEY (id),
-    CONSTRAINT UQ_PesosRecomendacao UNIQUE (perfil_risco, tipo_produto),
-    CONSTRAINT CK_PesosRecomendacao_Peso CHECK (peso >= 0 AND peso <= 1)
-);
 
 
 ------------------------------------------------------------

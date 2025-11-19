@@ -4,13 +4,13 @@ import lombok.*;
 
 import java.time.OffsetDateTime;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode
+@ToString
 public class SimularInvestimentoResponse {
-
     private ProdutoValidadoDTO produtoValidado;
     private ResultadoSimulacaoDTO resultadoSimulacao;
     private OffsetDateTime dataSimulacao;

@@ -10,7 +10,13 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "Cliente")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode
+@ToString
 public class Cliente {
 
     @Id

@@ -2,54 +2,92 @@ package br.com.caixaverso.invest.domain.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp; 
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
-@Table(name = "ProdutoInvestimento")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Table(name = "produto_investimento")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ProdutoInvestimento {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 50)
+    @Column(name = "codigo", nullable = false, unique = true, length = 50)
     private String codigo;
 
-    @Column(nullable = false, length = 150)
+    @Column(name = "nome", nullable = false, length = 150)
     private String nome;
 
-    @Column(nullable = false, length = 30)
+    @Column(name = "tipo", nullable = false, length = 30)
     private String tipo;
 
-    @Column(nullable = false, length = 20)
+    @Column(name = "risco", nullable = false, length = 20)
     private String risco;
 
-    @Column(name = "taxa_anual", precision = 7, scale = 4, nullable = false)
+    @Column(name = "taxa_anual", nullable = false, precision = 7, scale = 4)
     private BigDecimal taxaAnual;
 
-    @Column(nullable = false, length = 30)
+    @Column(name = "liquidez", nullable = false, length = 30)
     private String liquidez;
 
-    @Column(name = "prazo_min_meses")
+    @Column(name = "prazo_min_meses", nullable = false)
     private Integer prazoMinMeses;
 
-    @Column(name = "prazo_max_meses")
+    @Column(name = "prazo_max_meses", nullable = false)
     private Integer prazoMaxMeses;
 
-    @Column(name = "valor_minimo", precision = 18, scale = 2, nullable = false)
+    @Column(name = "valor_minimo", nullable = false, precision = 18, scale = 2)
     private BigDecimal valorMinimo;
 
-    @Column(name = "valor_maximo", precision = 18, scale = 2)
+    @Column(name = "valor_maximo", nullable = false, precision = 18, scale = 2)
     private BigDecimal valorMaximo;
 
-    @Column(nullable = false)
+    @Column(name = "ativo", nullable = false)
     private Boolean ativo;
 
     @CreationTimestamp
-    @Column(name = "data_criacao")
+    @Column(name = "data_criacao", nullable = false, updatable = false)
     private LocalDateTime dataCriacao;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ProdutoInvestimento that = (ProdutoInvestimento) o;
+        return Objects.equals(id, that.id) &&
+                Objects.equals(codigo, that.codigo);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, codigo);
+    }
+
+    @Override
+    public String toString() {
+        return "ProdutoInvestimento{" +
+                "id=" + id +
+                ", codigo='" + codigo + '\'' +
+                ", nome='" + nome + '\'' +
+                ", tipo='" + tipo + '\'' +
+                ", risco='" + risco + '\'' +
+                ", taxaAnual=" + taxaAnual +
+                ", liquidez='" + liquidez + '\'' +
+                ", prazoMinMeses=" + prazoMinMeses +
+                ", prazoMaxMeses=" + prazoMaxMeses +
+                ", valorMinimo=" + valorMinimo +
+                ", valorMaximo=" + valorMaximo +
+                ", ativo=" + ativo +
+                ", dataCriacao=" + dataCriacao +
+                '}';
+    }
 }

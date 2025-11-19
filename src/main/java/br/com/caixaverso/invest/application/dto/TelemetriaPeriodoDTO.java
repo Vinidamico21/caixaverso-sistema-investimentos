@@ -9,6 +9,8 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode
+@ToString
 public class TelemetriaPeriodoDTO {
 
     private LocalDate inicio;
