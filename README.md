@@ -497,7 +497,7 @@ docker compose up -d
 - Docker compose down --rmi all --volumes --remove-orphans
 ``` 
 
-- Serviços::
+- Serviços:
 
 - API: http://localhost:8080
 - SQL Server: `localhost:1433`
