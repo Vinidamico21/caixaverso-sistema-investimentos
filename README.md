@@ -731,7 +731,7 @@ Essa estrutura garante testes alinhados ao modelo de **Clean Architecture / DDD*
 
 A API foi estruturada para responder de forma rápida e estável mesmo com aumento de volume de dados, combinando **cache**, **consultas otimizadas** e **processamento em memória**.
 
-### ✔ Cache Estratégico (Redis + Quarkus Cache)
+### Cache Estratégico (Redis + Quarkus Cache)
 
 - Uso de **Quarkus Cache + Redis** (`quarkus-redis-cache`) para evitar consultas repetitivas ao banco.
 - Em cache ficam:
@@ -739,7 +739,7 @@ A API foi estruturada para responder de forma rápida e estável mesmo com aumen
     - Listas de produtos de investimento (lista completa e por tipo).
 - Os dados são carregados uma vez e reutilizados enquanto o **TTL** estiver válido, reduzindo drasticamente acessos ao banco.
 
-### ✔ Consultas Otimizadas ao Banco
+### Consultas Otimizadas ao Banco
 
 - Repositórios **Panache** consultam diretamente pelas colunas mais utilizadas em filtros e relacionamentos.
 - O script de schema inclui **índices** para:
@@ -750,13 +750,13 @@ A API foi estruturada para responder de forma rápida e estável mesmo com aumen
     - Telemetria: `endpoint`, `data_registro`
 - Isso reduz *full table scans* e acelera consultas de histórico, simulações e relatórios.
 
-### ✔ Motor de Recomendação em Memória
+### Motor de Recomendação em Memória
 
 - O `MotorRecomendacaoService` trabalha sobre **produtos e regras já carregados/cacheados**.
 - O cálculo de perfil, aplicação de preferências e classificação de risco ocorre 100% em memória usando **Java Streams**.
 - Durante o fluxo de recomendação **não há novas idas ao banco**, garantindo respostas em **milissegundos**.
 
-### ✔ Lazy Loading nas Entidades
+### Lazy Loading nas Entidades
 
 Os relacionamentos em `Investimento` e `SimulacaoInvestimento` utilizam *lazy loading*, evitando carga desnecessária de entidades relacionadas:
 
