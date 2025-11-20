@@ -81,7 +81,7 @@ class ClientTest {
                 .build();
 
         // mesmo objeto
-        assertTrue(c1.equals(c1));
+        assertEquals(c1, c1);
 
         // objetos diferentes com mesmos dados
         assertEquals(c1, c2);
@@ -129,8 +129,8 @@ class ClientTest {
                 .dataCriacao(LocalDateTime.of(2024, 1, 1, 0, 0))
                 .build();
 
-        assertFalse(cliente.equals(null));
-        assertFalse(cliente.equals("alguma-string"));
+        assertNotEquals(null, cliente);
+        assertNotEquals("alguma-string", cliente);
     }
 
     @Test

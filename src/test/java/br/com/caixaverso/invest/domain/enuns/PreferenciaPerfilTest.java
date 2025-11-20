@@ -88,8 +88,8 @@ class PreferenciaPerfilTest {
     @Test
     @DisplayName("Deve verificar igualdade corretamente")
     void equals_DeveVerificarIgualdadeCorreta() {
-        assertTrue(PreferenciaPerfil.LIQUIDEZ.equals(PreferenciaPerfil.LIQUIDEZ));
-        assertFalse(PreferenciaPerfil.LIQUIDEZ.equals(PreferenciaPerfil.RENTABILIDADE));
+        assertEquals(PreferenciaPerfil.LIQUIDEZ, PreferenciaPerfil.LIQUIDEZ);
+        assertNotEquals(PreferenciaPerfil.LIQUIDEZ, PreferenciaPerfil.RENTABILIDADE);
         assertNotEquals(PreferenciaPerfil.EMPATE, PreferenciaPerfil.LIQUIDEZ);
     }
 

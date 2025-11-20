@@ -20,6 +20,7 @@ CREATE TABLE dbo.Cliente (
         CHECK (renda_mensal IS NULL OR renda_mensal >= 0)
 );
 
+
 ------------------------------------------------------------
 -- Tabela: ProdutoInvestimento
 ------------------------------------------------------------
@@ -53,6 +54,7 @@ CREATE TABLE dbo.ProdutoInvestimento (
     )
 );
 
+
 ------------------------------------------------------------
 -- Tabela: SimulacaoInvestimento
 ------------------------------------------------------------
@@ -79,6 +81,7 @@ CREATE TABLE dbo.SimulacaoInvestimento (
     )
 );
 
+
 ------------------------------------------------------------
 -- Tabela: Investimento
 ------------------------------------------------------------
@@ -99,6 +102,7 @@ CREATE TABLE dbo.Investimento (
     )
 );
 
+
 ------------------------------------------------------------
 -- Tabela: TelemetriaRegistro
 ------------------------------------------------------------
@@ -114,15 +118,13 @@ CREATE TABLE dbo.TelemetriaRegistro (
     CONSTRAINT PK_TelemetriaRegistro PRIMARY KEY (id)
 );
 
-
 CREATE INDEX IX_Telemetria_Endpoint_Data
     ON dbo.TelemetriaRegistro (endpoint, data_registro);
 
 
 ------------------------------------------------------------
--- FOREIGN KEYS (SOMENTE AS QUE EXISTEM AINDA)
+-- FOREIGN KEYS
 ------------------------------------------------------------
-
 ALTER TABLE dbo.SimulacaoInvestimento
     ADD CONSTRAINT FK_Simulacao_Cliente
     FOREIGN KEY (cliente_id) REFERENCES dbo.Cliente(id);
@@ -141,7 +143,7 @@ ALTER TABLE dbo.Investimento
 
 
 ------------------------------------------------------------
--- Tabela: produto_risco_regra
+-- Tabela: ProdutoRiscoRegra
 ------------------------------------------------------------
 CREATE TABLE dbo.ProdutoRiscoRegra (
     id INT IDENTITY(1,1) PRIMARY KEY,
@@ -149,3 +151,74 @@ CREATE TABLE dbo.ProdutoRiscoRegra (
     rentabilidade_max DECIMAL(10,4) NULL,
     risco VARCHAR(20) NOT NULL
 );
+
+
+------------------------------------------------------------
+-- ÍNDICES ADICIONADOS PARA OTIMIZAÇÃO DE PERFORMANCE
+------------------------------------------------------------
+
+------------------------------------------------------------
+-- CLIENTE
+------------------------------------------------------------
+CREATE INDEX IX_Cliente_Nome
+    ON dbo.Cliente (nome);
+
+------------------------------------------------------------
+-- PRODUTOINVESTIMENTO
+------------------------------------------------------------
+CREATE INDEX IX_ProdutoInvestimento_Tipo
+    ON dbo.ProdutoInvestimento (tipo);
+
+CREATE INDEX IX_ProdutoInvestimento_Risco
+    ON dbo.ProdutoInvestimento (risco);
+
+CREATE INDEX IX_ProdutoInvestimento_Ativo
+    ON dbo.ProdutoInvestimento (ativo);
+
+CREATE INDEX IX_ProdutoInvestimento_Risco_Ativo
+    ON dbo.ProdutoInvestimento (risco, ativo);
+
+------------------------------------------------------------
+-- SIMULACAO INVESTIMENTO
+------------------------------------------------------------
+CREATE INDEX IX_Simulacao_Cliente
+    ON dbo.SimulacaoInvestimento (cliente_id);
+
+CREATE INDEX IX_Simulacao_Produto
+    ON dbo.SimulacaoInvestimento (produto_id);
+
+CREATE INDEX IX_Simulacao_Data
+    ON dbo.SimulacaoInvestimento (data_simulacao_dia);
+
+CREATE INDEX IX_Simulacao_Cliente_Data
+    ON dbo.SimulacaoInvestimento (cliente_id, data_simulacao_dia);
+
+------------------------------------------------------------
+-- INVESTIMENTO
+------------------------------------------------------------
+CREATE INDEX IX_Investimento_Cliente
+    ON dbo.Investimento (cliente_id);
+
+CREATE INDEX IX_Investimento_Produto
+    ON dbo.Investimento (produto_id);
+
+CREATE INDEX IX_Investimento_Status
+    ON dbo.Investimento (status);
+
+CREATE INDEX IX_Investimento_Cliente_Status
+    ON dbo.Investimento (cliente_id, status);
+
+------------------------------------------------------------
+-- TELEMETRIA
+------------------------------------------------------------
+CREATE INDEX IX_Telemetria_Sucesso
+    ON dbo.TelemetriaRegistro (sucesso);
+
+CREATE INDEX IX_Telemetria_StatusHttp
+    ON dbo.TelemetriaRegistro (status_http);
+
+------------------------------------------------------------
+-- PRODUTORISCOREGRA
+------------------------------------------------------------
+CREATE INDEX IX_ProdutoRisco_Range
+    ON dbo.ProdutoRiscoRegra (rentabilidade_min, rentabilidade_max);

@@ -701,3 +701,91 @@ Por fim:
 
 Isso garante que o avaliador veja recomendações **coerentes com o perfil do cliente**, mas totalmente **parametrizáveis via banco**, sem necessidade de alterar código.
 
+
+### 11 - Estrutura de Testes
+
+O projeto possui uma suíte de testes bem estruturada, espelhando a arquitetura da aplicação.
+
+#### Tecnologias Utilizadas
+
+- **JUnit 5** para testes unitários e de integração
+- **Mockito** para criação de mocks e stubs nas camadas de serviço e portas
+- **Quarkus Test + RestAssured** para testes de recursos REST (testando a API “de fora pra dentro”)
+- **JaCoCo** para medição de cobertura de código (`target/site/jacoco`)
+
+#### Organização por Camadas (`src/test/java`)
+
+- **application**: testes de *services*, *ports* e *DTOs*, garantindo regras de negócio e contratos das portas
+- **domain**: testes de entidades, *enums* e regras de domínio
+- **infra**: testes de *adapters*, repositórios, mapeamentos e *exception mappers*
+- **resource**: testes dos *controllers/resources* REST, validando status HTTP, payloads e cenários de erro
+
+#### Cobertura
+
+- Cobertura de linhas **acima de 90%**, com boa distribuição entre as camadas
+- Foco tanto em **fluxos felizes** quanto em **cenários de erro e validações**
+
+Essa estrutura garante testes alinhados ao modelo de **Clean Architecture / DDD**, com alta cobertura, boa separação de responsabilidades e facilidade de manutenção e evolução da base de código.
+
+## 12. Performance
+
+A API foi estruturada para responder de forma rápida e estável mesmo com aumento de volume de dados, combinando **cache**, **consultas otimizadas** e **processamento em memória**.
+
+### ✔ Cache Estratégico (Redis + Quarkus Cache)
+
+- Uso de **Quarkus Cache + Redis** (`quarkus-redis-cache`) para evitar consultas repetitivas ao banco.
+- Em cache ficam:
+    - Regras de negócio (perfil de risco, frequência, risco por produto, preferências).
+    - Listas de produtos de investimento (lista completa e por tipo).
+- Os dados são carregados uma vez e reutilizados enquanto o **TTL** estiver válido, reduzindo drasticamente acessos ao banco.
+
+### ✔ Consultas Otimizadas ao Banco
+
+- Repositórios **Panache** consultam diretamente pelas colunas mais utilizadas em filtros e relacionamentos.
+- O script de schema inclui **índices** para:
+    - FKs: `cliente_id`, `produto_id`
+    - Datas: `data_simulacao_dia`
+    - Status: `status`
+    - Propriedades de produto: `risco`, `ativo`, `tipo`
+    - Telemetria: `endpoint`, `data_registro`
+- Isso reduz *full table scans* e acelera consultas de histórico, simulações e relatórios.
+
+### ✔ Motor de Recomendação em Memória
+
+- O `MotorRecomendacaoService` trabalha sobre **produtos e regras já carregados/cacheados**.
+- O cálculo de perfil, aplicação de preferências e classificação de risco ocorre 100% em memória usando **Java Streams**.
+- Durante o fluxo de recomendação **não há novas idas ao banco**, garantindo respostas em **milissegundos**.
+
+### ✔ Lazy Loading nas Entidades
+
+Os relacionamentos em `Investimento` e `SimulacaoInvestimento` utilizam *lazy loading*, evitando carga desnecessária de entidades relacionadas:
+
+```java
+@ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "cliente_id")
+private Cliente cliente;
+
+@ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "produto_id")
+private ProdutoInvestimento produto;
+```
+Esses objetos só são carregados quando realmente necessários, reduzindo I/O e uso de memória em listagens e consultas recorrentes.
+
+- Pipeline Enxuto de Recomendação
+- O pipeline roda 100% em memória:
+- Carrega regras e produtos (via repositórios cacheados).
+- Filtra produtos inativos ou incompatíveis com o perfil do cliente.
+- Calcula o perfil de risco e aplica preferências do cliente.
+- Atribui um score de adequação com base em:
+**risco, liquidez x prazo, rentabilidade, histórico de simulações/contratações.**
+
+Ordena os produtos pelos melhores scores e retorna apenas os mais relevantes.
+
+Todo esse processamento acontece na camada de aplicação, minimizando acessos ao banco e mantendo a API preparada para alto volume de requisições com baixa latência.
+
+
+## Contato
+Nome: Vinicius Pereira D'Amico
+E-mail: vinicius.amico@caixa.gov.br
+Trilha: Dev Back-end Java | Nível II (mas fiz as aulas do nível III)
+Matrícula: C159473-4

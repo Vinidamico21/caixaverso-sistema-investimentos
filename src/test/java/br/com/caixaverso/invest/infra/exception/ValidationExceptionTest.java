@@ -15,7 +15,7 @@ class ValidationExceptionTest {
         ValidationException ex = new ValidationException(code, msg);
 
         // herda de ApiException
-        assertTrue(ex instanceof ApiException);
+        assertInstanceOf(ApiException.class, ex);
 
         // status sempre BAD_REQUEST (400)
         assertEquals(Response.Status.BAD_REQUEST, ex.getStatus());

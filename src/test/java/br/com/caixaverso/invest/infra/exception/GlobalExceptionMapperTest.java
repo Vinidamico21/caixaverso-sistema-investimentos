@@ -13,6 +13,7 @@ import jakarta.ws.rs.core.UriInfo;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -50,7 +51,7 @@ class GlobalExceptionMapperTest {
         Response resp = mapper.toResponse(ex);
 
         assertEquals(ex.getStatus().getStatusCode(), resp.getStatus());
-        assertTrue(resp.getEntity() instanceof ApiErrorDTO);
+        assertInstanceOf(ApiErrorDTO.class, resp.getEntity());
 
         ApiErrorDTO body = (ApiErrorDTO) resp.getEntity();
         assertEquals(ex.getStatus().getStatusCode(), body.status());
@@ -153,7 +154,7 @@ class GlobalExceptionMapperTest {
                 return new Path() {
                     @Override
                     public Iterator<Node> iterator() {
-                        return List.<Node>of().iterator();
+                        return Collections.emptyIterator();
                     }
 
                     @Override

@@ -22,9 +22,9 @@ class SimulacaoResultadoTest {
 
         SimulacaoResultado resultado = new SimulacaoResultado(produto, valorFinal, prazo);
 
-        assertEquals(produto, resultado.getProduto());
-        assertEquals(new BigDecimal("2500.50"), resultado.getValorFinal());
-        assertEquals(12, resultado.getPrazoMeses());
+        assertEquals(produto, resultado.produto());
+        assertEquals(new BigDecimal("2500.50"), resultado.valorFinal());
+        assertEquals(12, resultado.prazoMeses());
     }
 
     @Test
@@ -89,7 +89,7 @@ class SimulacaoResultadoTest {
         String result = resultado.toString();
 
         assertTrue(result.contains("SimulacaoResultado"));
-        assertTrue(result.contains("produto=" + produto.toString()));
+        assertTrue(result.contains("produto=" + produto));
         assertTrue(result.contains("valorFinal=5000.00"));
         assertTrue(result.contains("prazoMeses=24"));
     }
@@ -98,9 +98,9 @@ class SimulacaoResultadoTest {
     void testWithNullValues() {
         SimulacaoResultado resultado = new SimulacaoResultado(null, null, null);
 
-        assertNull(resultado.getProduto());
-        assertNull(resultado.getValorFinal());
-        assertNull(resultado.getPrazoMeses());
+        assertNull(resultado.produto());
+        assertNull(resultado.valorFinal());
+        assertNull(resultado.prazoMeses());
     }
 
     @Test
@@ -123,8 +123,8 @@ class SimulacaoResultadoTest {
         SimulacaoResultado resultado = new SimulacaoResultado(produto, valorFinal, prazo);
 
         // Os valores não devem mudar após a criação
-        assertEquals(produto, resultado.getProduto());
-        assertEquals(valorFinal, resultado.getValorFinal());
-        assertEquals(prazo, resultado.getPrazoMeses());
+        assertEquals(produto, resultado.produto());
+        assertEquals(valorFinal, resultado.valorFinal());
+        assertEquals(prazo, resultado.prazoMeses());
     }
 }
