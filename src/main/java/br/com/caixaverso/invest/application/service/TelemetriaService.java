@@ -83,10 +83,13 @@ public class TelemetriaService implements
 
         List<Object[]> results = telemetriaRepository.getEntityManager()
                 .createQuery(
-                        "select t.metodoHttp, t.endpoint, count(t), avg(t.duracaoMs), " +
-                                "min(t.dataRegistro), max(t.dataRegistro) " +
-                                "from TelemetriaRegistro t " +
-                                "group by t.metodoHttp, t.endpoint",
+                        "select t.endpoint,\n" +
+                                "       count(t),\n" +
+                                "       avg(t.duracaoMs),\n" +
+                                "       min(t.dataRegistro),\n" +
+                                "       max(t.dataRegistro)\n" +
+                                "from TelemetriaRegistro t\n" +
+                                "group by t.endpoint\n",
                         Object[].class
                 )
                 .getResultList();
@@ -97,14 +100,13 @@ public class TelemetriaService implements
 
         for (Object[] row : results) {
 
-            String metodo = (String) row[0];
-            String endpoint = (String) row[1];
-            long qtdChamadas = (Long) row[2];
-            Double avgDuracao = (Double) row[3];
-            LocalDateTime primeira = (LocalDateTime) row[4];
-            LocalDateTime ultima = (LocalDateTime) row[5];
+            String endpoint = (String) row[0];
+            long qtdChamadas = (Long) row[1];
+            Double avgDuracao = (Double) row[2];
+            LocalDateTime primeira = (LocalDateTime) row[3];
+            LocalDateTime ultima = (LocalDateTime) row[4];
 
-            String nomeServico = metodo + " " + endpoint;
+            String nomeServico = endpoint;
 
             if (primeira != null) {
                 LocalDate d = primeira.toLocalDate();

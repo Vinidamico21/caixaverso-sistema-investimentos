@@ -124,19 +124,17 @@ class TelemetriaServiceTest {
         LocalDateTime primeira1 = LocalDateTime.of(2024, 1, 1, 10, 0);
         LocalDateTime ultima1   = LocalDateTime.of(2024, 1, 3, 11, 0);
 
-        // linha 1: média com valor
+        // linha 1: endpoint correto
         Object[] row1 = new Object[] {
-                "GET",                         // metodo
-                "/api/simulacoes",             // endpoint
-                3L,                            // count
-                150.0,                         // avg
-                primeira1,                     // min data
-                ultima1                        // max data
+                "/api/simulacoes",   // endpoint → row[0]
+                3L,                  // count → row[1]
+                150.0,               // avg → row[2]
+                primeira1,           // min → row[3]
+                ultima1              // max → row[4]
         };
 
-        // linha 2: média nula + datas nulas (exercita branch do avgDuracao e dos ifs de data)
+        // linha 2: média nula + datas nulas
         Object[] row2 = new Object[] {
-                "POST",
                 "/api/clientes",
                 1L,
                 null,
@@ -153,28 +151,29 @@ class TelemetriaServiceTest {
         assertNotNull(resp.getServicos());
         assertEquals(2, resp.getServicos().size());
 
-        // período deve usar min(primeira) e max(ultima) das linhas
         TelemetriaPeriodoDTO periodo = resp.getPeriodo();
+
+        // período deve ser o menor e o maior encontrados
         assertEquals(primeira1.toLocalDate(), periodo.getInicio());
         assertEquals(ultima1.toLocalDate(), periodo.getFim());
 
-        // serviço GET /api/simulacoes
+        // serviço 1
         TelemetriaServicoDTO s1 = resp.getServicos().stream()
-                .filter(s -> "GET /api/simulacoes".equals(s.getNome()))
+                .filter(s -> "/api/simulacoes".equals(s.getNome()))
                 .findFirst()
                 .orElseThrow();
 
         assertEquals(3L, s1.getQuantidadeChamadas());
         assertEquals(150L, s1.getMediaTempoRespostaMs());
 
-        // serviço POST /api/clientes (média nula → 0L)
+        // serviço 2
         TelemetriaServicoDTO s2 = resp.getServicos().stream()
-                .filter(s -> "POST /api/clientes".equals(s.getNome()))
+                .filter(s -> "/api/clientes".equals(s.getNome()))
                 .findFirst()
                 .orElseThrow();
 
         assertEquals(1L, s2.getQuantidadeChamadas());
-        assertEquals(0L, s2.getMediaTempoRespostaMs());
+        assertEquals(0L, s2.getMediaTempoRespostaMs()); // média nula → 0L
     }
 
     // ----------------------------------------------------

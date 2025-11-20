@@ -40,6 +40,8 @@ public class RequestMetricsFilter implements ContainerRequestFilter, ContainerRe
         String metodo = requestContext.getMethod();
         String path = "/" + requestContext.getUriInfo().getPath();
 
+        String endpointNormalizado = normalizarEndpoint(path);
+
         int status = responseContext.getStatus();
         boolean sucesso = status >= 200 && status < 300;
 
@@ -47,11 +49,33 @@ public class RequestMetricsFilter implements ContainerRequestFilter, ContainerRe
 
         telemetriaService.registrar(
                 clienteId,
-                path,
+                endpointNormalizado,
                 metodo,
                 sucesso,
                 status,
                 duracaoMs
         );
+    }
+
+    // FUNÇÃO DE NORMALIZAÇÃO CENTRALIZADA
+    private String normalizarEndpoint(String endpoint) {
+        if (endpoint == null) return "/desconhecido";
+
+        endpoint = endpoint.replaceAll("//+", "/");
+
+        endpoint = endpoint.replaceAll("/[0-9a-fA-F\\-]{36}", "/{uuid}");
+
+        endpoint = endpoint.replaceAll("/\\d+", "/{id}");
+
+        endpoint = endpoint.replaceAll(
+                "/(CONSERVADOR|MODERADO|AGRESSIVO)",
+                "/{perfil}"
+        );
+
+        if (endpoint.endsWith("/") && endpoint.length() > 1) {
+            endpoint = endpoint.substring(0, endpoint.length() - 1);
+        }
+
+        return endpoint;
     }
 }
