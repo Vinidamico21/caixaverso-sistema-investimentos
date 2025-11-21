@@ -77,6 +77,7 @@ public final class PerfilConstantes {
     public static final String AUTH_ROLE_USER = "USER";
     public static final String AUTH_JWT_ISSUER = "caixaverso-investimentos";
     public static final String AUTH_JWT_TOKEN_TYPE = "Bearer";
+    public static final String AUTH_JWT_TOKEN_BLOCKED = "Usuário temporariamente bloqueado por tentativas inválidas";
 
     /* ---------------------------- INVESTIMENTOS ---------------------------- */
 

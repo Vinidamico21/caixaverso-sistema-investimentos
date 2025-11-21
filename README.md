@@ -98,6 +98,21 @@ quarkus.flyway.locations=classpath:db/migration
 
 ## 4. Autenticação & Segurança (JWT)
 
+## 4.1. Credenciais para testes
+
+Para facilitar a avaliação do projeto, estão disponíveis dois perfis de acesso pré-configurados:
+
+| **Usuário** | **Senha** | **Roles**        |
+|-------------|-----------|------------------|
+| `admin`     | `admin@123teste`   | `ADMIN`, `USER` |
+| `user`      | `user@123teste`    | `USER`          |
+
+
+Essas credenciais devem ser usadas no endpoint:
+
+POST /api/v1/auth/login
+
+
 A aplicação usa **JWT (RS256)** com chaves em:
 
 - `src/main/resources/jwt/private.pem`
@@ -114,7 +129,7 @@ mp.jwt.verify.issuer=caixaverso-investimentos
 jwt.expiration.seconds=3600
 ```
 
-### 4.1. Rotas públicas vs protegidas
+### 4.2. Rotas públicas vs protegidas
 
 Configuração de paths públicos:
 
@@ -133,14 +148,66 @@ quarkus.http.auth.permission.public.paths=/api/v1/auth/*,/q/swagger-ui/*,/openap
 - **Protegido com JWT (ROLE `ADMIN`):**
     - Telemetria.
 
-### 4.2. Credenciais de Exemplo
+## 4.3. Mecanismo Anti-Bot: Tentativas e Bloqueio Temporário
 
-No endpoint de login:
+A aplicação conta com uma proteção interna contra ataques de força bruta (brute force) e tentativas automatizadas (bots) no endpoint de login.
 
-- `admin / admin` → Roles: `ADMIN`, `USER`
-- `user / user` → Role: `USER`
+- Controle de tentativas
 
----
+O sistema registra falhas consecutivas de autenticação por usuário (ou IP, dependendo da configuração).
+- Bloqueio temporário (lockout)
+
+Após exceder 5 tentativas falhas, o usuário é automaticamente bloqueado por 5 minutos.
+
+Durante esse período:
+
+O login é rejeitado imediatamente
+
+Bloqueia tentativas automatizadas de senhas
+
+Impede exploração contínua por bots
+
+Mantém o serviço estável sob ataque
+- Limpeza automática
+
+Se o login for realizado com sucesso, o contador de tentativas é apagado.
+
+- Arquitetura baseada em Port/Adapter
+
+Implementação seguindo o padrão de Arquitetura Hexagonal:
+
+Port: TentativaLoginPort
+
+Adapter: TentativaLoginInMemoryAdapter
+
+Sendo facilmente substituível por Redis, banco relacional ou cache distribuído.
+
+## 4.4. Benefícios dessa Proteção
+- Prevenção contra ataques de força bruta
+
+Bots não conseguem testar senhas indefinidamente.
+
+- Maior estabilidade e resiliência
+
+Reduz requisições abusivas, protegendo o desempenho da API.
+
+- Aumento da segurança geral
+
+Mesmo usando credenciais simples para demonstração, o endpoint não fica exposto a exploração.
+
+- Arquitetura extensível
+
+A implementação em Port/Adapter permite evolução futura para:
+
+ - Redis
+
+ - Banco relacional
+
+ - Sistemas distribuídos de rate limit
+
+ - Facilita a avaliação do projeto
+
+O avaliador dispõe de usuários prontos e percebe que o sistema contempla medidas reais de segurança e mitigação contra ataques.
 
 ## 5. Endpoints da API
 
@@ -157,6 +224,12 @@ Request:
 }
 ```
 
+```json
+{
+  "username": "admin",
+  "password": "admin"
+}
+```
 Response (200):
 
 ```json

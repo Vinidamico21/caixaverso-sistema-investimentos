@@ -36,7 +36,7 @@ public class AuthResource {
     @PermitAll
     @Operation(
             summary = "Realiza login e retorna token JWT",
-            description = "Valida credenciais e emite um token JWT para uso nos endpoints autenticados."
+            description = "Valida credenciais e emite um token JWT para uso nos endpoints autenticados. Consulte o README do projeto para visualizar as credenciais de exemplo na seção '4.0'."
     )
     @APIResponses({
             @APIResponse(

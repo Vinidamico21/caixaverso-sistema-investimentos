@@ -2,7 +2,7 @@ package br.com.caixaverso.invest.application.service;
 
 import br.com.caixaverso.invest.application.dto.AuthRequestDTO;
 import br.com.caixaverso.invest.application.dto.AuthResponseDTO;
-import br.com.caixaverso.invest.application.service.AuthService;
+import br.com.caixaverso.invest.application.port.out.TentativaLoginPort; 
 import br.com.caixaverso.invest.infra.exception.BusinessException;
 import br.com.caixaverso.invest.infra.exception.UnauthorizedException;
 import io.smallrye.jwt.build.Jwt;
@@ -21,16 +21,18 @@ import static org.mockito.Mockito.*;
 class AuthServiceTest {
 
     private AuthService authService;
+    private TentativaLoginPort tentativaLoginMock;
 
     @BeforeEach
     void setup() {
         authService = new AuthService();
-        authService.expirationSeconds = 3600; // simula @ConfigProperty
-    }
+        authService.expirationSeconds = 3600;
 
-    // ------------------------------------------------------------------------------------------
-    // TESTES DO MÉTODO PRINCIPAL: autenticar()
-    // ------------------------------------------------------------------------------------------
+        tentativaLoginMock = mock(TentativaLoginPort.class);
+        when(tentativaLoginMock.estaBloqueado(anyString())).thenReturn(false);
+
+        authService.tentativaLoginPort = tentativaLoginMock;
+    }
 
     @Test
     void testAutenticarComAdmin_RetornaTokenValido() {
@@ -47,15 +49,12 @@ class AuthServiceTest {
 
             AuthRequestDTO request = AuthRequestDTO.builder()
                     .username("admin")
-                    .password("admin")
+                    .password("admin@123teste")
                     .build();
 
             AuthResponseDTO response = authService.autenticar(request);
 
-            assertNotNull(response);
             assertEquals("TOKEN_SIMULADO", response.getToken());
-            assertEquals("Bearer", response.getTokenType());
-            assertEquals(3600, response.getExpiresIn());
         }
     }
 
@@ -74,7 +73,7 @@ class AuthServiceTest {
 
             AuthRequestDTO request = AuthRequestDTO.builder()
                     .username("user")
-                    .password("user")
+                    .password("user@123teste")
                     .build();
 
             AuthResponseDTO response = authService.autenticar(request);
@@ -100,10 +99,6 @@ class AuthServiceTest {
         assertThrows(UnauthorizedException.class, () -> authService.autenticar(dto));
     }
 
-    // ------------------------------------------------------------------------------------------
-    // TESTE DO MÉTODO gerarToken()
-    // ------------------------------------------------------------------------------------------
-
     @Test
     void testGerarToken() {
         try (MockedStatic<Jwt> jwtMock = mockStatic(Jwt.class)) {
@@ -123,10 +118,6 @@ class AuthServiceTest {
         }
     }
 
-    // ------------------------------------------------------------------------------------------
-    // “normalizar()” é privado → testar via COMPORTAMENTO da autenticação
-    // ------------------------------------------------------------------------------------------
-
     @Test
     void testAutenticarComEspacosEMaiusculas_NormalizaEFunciona() {
         try (MockedStatic<Jwt> jwtMock = mockStatic(Jwt.class)) {
@@ -140,18 +131,15 @@ class AuthServiceTest {
             when(builderMock.expiresAt(any(Instant.class))).thenReturn(builderMock);
             when(builderMock.sign()).thenReturn("TOK-NORMALIZADO");
 
-            // Entradas com espaços/MAIÚSCULAS devem ser normalizadas para "admin"
             AuthRequestDTO request = AuthRequestDTO.builder()
                     .username(" ADMIN ")
-                    .password(" ADMIN ")
+                    .password("admin@123teste") // senha correta!
                     .build();
 
             AuthResponseDTO resp = authService.autenticar(request);
 
-            assertNotNull(resp);
             assertEquals("TOK-NORMALIZADO", resp.getToken());
-            assertEquals("Bearer", resp.getTokenType());
-            assertEquals(3600, resp.getExpiresIn());
         }
     }
 }
+

@@ -3,11 +3,13 @@ package br.com.caixaverso.invest.application.service;
 import br.com.caixaverso.invest.application.dto.AuthRequestDTO;
 import br.com.caixaverso.invest.application.dto.AuthResponseDTO;
 import br.com.caixaverso.invest.application.port.in.AuthUseCase;
+import br.com.caixaverso.invest.application.port.out.TentativaLoginPort;
 import br.com.caixaverso.invest.domain.constants.PerfilConstantes;
 import br.com.caixaverso.invest.infra.exception.BusinessException;
 import br.com.caixaverso.invest.infra.exception.UnauthorizedException;
 import io.smallrye.jwt.build.Jwt;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.time.Instant;
@@ -16,25 +18,39 @@ import java.util.Set;
 @ApplicationScoped
 public class AuthService implements AuthUseCase {
 
+    @Inject
+    TentativaLoginPort tentativaLoginPort;
+
     @ConfigProperty(name = "jwt.expiration.seconds", defaultValue = "3600")
     public long expirationSeconds;
 
     @Override
     public AuthResponseDTO autenticar(AuthRequestDTO request) {
+
         validarRequest(request);
 
         String username = normalizar(request.getUsername());
-        String password = normalizar(request.getPassword());
+        String password = request.getPassword();
 
-        Set<String> roles = autenticarUsuario(username, password);
+        String chave = username;
 
-        String token = gerarToken(username, roles);
+        if (tentativaLoginPort.estaBloqueado(chave)) {
+            throw new UnauthorizedException(PerfilConstantes.AUTH_JWT_TOKEN_BLOCKED);
+        }
 
-        return AuthResponseDTO.builder()
-                .token(token)
-                .tokenType(PerfilConstantes.AUTH_JWT_TOKEN_TYPE)
-                .expiresIn(expirationSeconds)
-                .build();
+        try {
+            Set<String> roles = autenticarUsuario(username, password);
+
+            tentativaLoginPort.limpar(chave);
+
+            String token = gerarToken(username, roles);
+            return AuthResponseDTO.builder().token(token).tokenType("Bearer").expiresIn(expirationSeconds).build();
+
+        } catch (UnauthorizedException e) {
+
+            tentativaLoginPort.registrarFalha(chave);
+            throw e;
+        }
     }
 
     private void validarRequest(AuthRequestDTO request) {
@@ -49,8 +65,9 @@ public class AuthService implements AuthUseCase {
 
     private Set<String> autenticarUsuario(String username, String password) {
 
+        // ADMIN: admin / admin@123teste
         if (PerfilConstantes.AUTH_USER_ADMIN.equals(username)
-                && PerfilConstantes.AUTH_USER_ADMIN.equals(password)) {
+                && "admin@123teste".equals(password)) {
 
             return Set.of(
                     PerfilConstantes.AUTH_ROLE_ADMIN,
@@ -58,8 +75,9 @@ public class AuthService implements AuthUseCase {
             );
         }
 
+        // USER: user / user@123teste
         if (PerfilConstantes.AUTH_USER_PADRAO.equals(username)
-                && PerfilConstantes.AUTH_USER_PADRAO.equals(password)) {
+                && "user@123teste".equals(password)) {
 
             return Set.of(PerfilConstantes.AUTH_ROLE_USER);
         }
