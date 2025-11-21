@@ -3,7 +3,9 @@ package br.com.caixaverso.invest.resource;
 import br.com.caixaverso.invest.application.dto.ProdutoRecomendadoDTO;
 import br.com.caixaverso.invest.application.dto.RecomendacaoResponseDTO;
 import br.com.caixaverso.invest.application.port.in.RecomendarProdutosUseCase;
+import br.com.caixaverso.invest.domain.enums.PerfilRisco;
 import br.com.caixaverso.invest.infra.exception.ApiErrorDTO;
+import br.com.caixaverso.invest.infra.exception.BusinessException;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
@@ -96,11 +98,17 @@ public class RecomendacaoResource {
                     content = @Content(schema = @Schema(implementation = ApiErrorDTO.class))
             )
     })
-    public Response listarPorPerfil(
-            @Parameter(description = "Perfil (CONSERVADOR, MODERADO, AGRESSIVO)", required = true)
-            @PathParam("perfil") String perfil) {
+    public Response listarPorPerfil(@PathParam("perfil") String perfil) {
 
-        List<ProdutoRecomendadoDTO> produtos = recomendacaoUseCase.recomendarPorPerfil(perfil);
+        PerfilRisco perfilRisco = PerfilRisco.from(perfil);
+
+        if (perfilRisco == PerfilRisco.DESCONHECIDO) {
+            throw new BusinessException(
+                    "Parâmetro 'perfil' inválido. Valores permitidos: CONSERVADOR, MODERADO, AGRESSIVO."
+            );
+        }
+        List<ProdutoRecomendadoDTO> produtos =
+                recomendacaoUseCase.recomendarPorPerfil(perfilRisco.name());
 
         return Response.ok(produtos).build();
     }
