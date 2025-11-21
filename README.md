@@ -220,14 +220,14 @@ Request:
 ```json
 {
   "username": "user",
-  "password": "user"
+  "password": "user@123teste"
 }
 ```
 
 ```json
 {
   "username": "admin",
-  "password": "admin"
+  "password": "admin@123teste"
 }
 ```
 Response (200):
