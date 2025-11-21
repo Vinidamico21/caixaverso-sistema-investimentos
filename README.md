@@ -154,7 +154,7 @@ A aplicação conta com uma proteção interna contra ataques de força bruta (b
 
 - Controle de tentativas
 
-O sistema registra falhas consecutivas de autenticação por usuário (ou IP, dependendo da configuração).
+O sistema registra falhas consecutivas de autenticação por usuário.
 - Bloqueio temporário (lockout)
 
 Após exceder 5 tentativas falhas, o usuário é automaticamente bloqueado por 5 minutos.
