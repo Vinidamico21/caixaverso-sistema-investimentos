@@ -859,6 +859,9 @@ Todo esse processamento acontece na camada de aplicação, minimizando acessos a
 
 ## Contato
 Nome: Vinicius Pereira D'Amico
+
 E-mail: vinicius.amico@caixa.gov.br
+
 Trilha: Dev Back-end Java | Nível II (mas fiz as aulas do nível III)
+
 Matrícula: C159473-4
